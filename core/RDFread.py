@@ -4,7 +4,7 @@
 # Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
 # This file is part of naivemapper.
 #
-# naivemapper is free software; you can redistribute it and/or modify
+#  naivemapper is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.

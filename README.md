@@ -1,4 +1,4 @@
-FEAR
+naivemapper
 ====
 
-Find Errors in Automapped Reactions
+Reactions Automapper 
