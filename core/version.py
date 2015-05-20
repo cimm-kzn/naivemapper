@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright 2014, 2015 Ramil Nugmanov <stsouko@live.ru>
-# This file is part of FEAR (Find Errors in Automapped Reactions).
+# Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
+# This file is part of naivemapper.
 #
-# FEAR is free software; you can redistribute it and/or modify
+#  naivemapper is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -19,15 +19,16 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-import os
 
 
-def rules(rulefile):
-    script_dir = os.path.dirname(__file__)
-    with open(os.path.join(script_dir, rulefile), 'a+') as f:
-        rule = {}
-        for i in f:
-            x, y = i.strip().split("'")
-            y = y.split('+')
-            rule[tuple([int(z) for z in x.split(',')])] = (float(y[0]), y[1].strip())
-        return rule
+def main():
+    print("This file is part of naivemapper.")
+    return 0
+
+
+def version():
+    return '0.0.1'
+
+
+if __name__ == '__main__':
+    main()

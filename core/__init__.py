@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  version.py
+# Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
+# This file is part of naivemapper.
 #
-#  Copyright 2014, 2015 Ramil Nugmanov <stsouko@live.ru>
-#  This file is part of FEAR (Find Errors in Automapped Reactions).
-#
-#  FEAR is free software; you can redistribute it and/or modify
+#  naivemapper is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -21,7 +19,3 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-
-
-def version():
-    return '0.1.0'

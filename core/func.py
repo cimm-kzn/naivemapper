@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright 2014, 2015 Ramil Nugmanov <stsouko@live.ru>
-# This file is part of FEAR (Find Errors in Automapped Reactions).
+# Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
+# This file is part of naivemapper.
 #
-# FEAR is free software; you can redistribute it and/or modify
+#  naivemapper is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -22,16 +22,14 @@
 from collections import defaultdict
 import copy
 import numpy
-from mendel import replace
-from maprules import rules
 
 
 def main():
-    print("This file is part of FEAR.")
+    print("This file is part of naivemapper.")
     return 0
 
 
-class CGR(object):
+class Mapper(object):
     def __init__(self):
         self.__replace = replace()
         self.__rulesC = rules('rules_c.dat')
