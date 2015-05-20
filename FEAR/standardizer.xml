@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<StandardizerConfiguration Version="0.1">
+  <Actions>
+    <Aromatize ID="Aromatize" Type="general"/>
+    <SetHydrogenIsotopeSymbol ID="Set Hydrogen Isotope Symbol" Type="2H3H"/>
+    <AddExplicitH ID="Add Explicit Hydrogens"/>
+  </Actions>
+</StandardizerConfiguration>
