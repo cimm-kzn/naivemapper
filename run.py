@@ -49,8 +49,8 @@ def main():
             print ("reaction: %d" % (i + 1))
         #res = calc.firstcgr(data)
         try:
-            res = calc.firstcgr(data, i +1)
-            if res:
+            res = calc.get(data)
+            if not res:
                 out.write(data)
         except:
             e += 1
