@@ -1,4 +1,4 @@
 naivemapper
 ====
 
-Reactions Automapper 
+Reactions Automapper

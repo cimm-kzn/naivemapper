@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
 # This file is part of naivemapper.
 #
-#  naivemapper is free software; you can redistribute it and/or modify
+# naivemapper is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
 #  the Free Software Foundation; either version 3 of the License, or
 #  (at your option) any later version.
@@ -21,7 +21,7 @@
 #
 import argparse
 
-from core.func import Mapper
+from core.fragger import Fragger
 from core.RDFread import RDFread
 from core.version import version
 from core.RDFwrite import RDFwrite
@@ -33,6 +33,8 @@ def main():
     rawopts.add_argument("--version", "-v", action="version", version=version(), default=False)
     rawopts.add_argument("--input", "-i", type=str, default='input.rdf', help="input RDF ")
     rawopts.add_argument("--output", "-o", type=str, default="output.rdf", help="output RDF")
+    rawopts.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
+    rawopts.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     options = vars(rawopts.parse_args())
 
     inp = RDFread(options['input'])
@@ -41,22 +43,21 @@ def main():
         return 0
 
     out = RDFwrite(options['output'])
-    calc = Mapper()
+    fragger = Fragger(**options)
     e = 0
 
     for i, data in enumerate(inp.readdata()):
         if i % 100 == 0 and i:
-            print ("reaction: %d" % (i + 1))
+            print("reaction: %d" % (i + 1))
         #res = calc.firstcgr(data)
         try:
-            res = calc.get(data)
-            if not res:
-                out.write(data)
+            res = fragger.get(data)
+            print(res)
         except:
             e += 1
-            print ("Error: %d" % (i+1))
+            print("Error: %d" % (i + 1))
 
-    print("Checked %d reactions. %d reactions consist exception errors" % (i+1, e))
+    print("Checked %d reactions. %d reactions consist exception errors" % (i + 1, e))
     return 0
 
 

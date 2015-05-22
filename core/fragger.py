@@ -29,9 +29,10 @@ def main():
     return 0
 
 
-class Mapper(object):
-    def __init__(self):
-        self.__data = {}
+class Fragger(object):
+    def __init__(self, **kwargs):
+        self.__min = kwargs['min']
+        self.__max = kwargs['max']
 
     def get(self, data):
         '''
@@ -40,10 +41,10 @@ class Mapper(object):
         :param data:  словарь описывающий всю реакцию
         :return:
         '''
-        self.__data['substrats'] = self.__getmatrix(data['substrats'])
-        self.__data['products'] = self.__getmatrix(data['products'])
+        result = {'substrats': self.__dosearch(self.__getmatrix(data['substrats'])),
+                  'products': self.__dosearch(self.__getmatrix(data['products']))}
 
-        return True
+        return result
 
     def __getmatrix(self, data):
         '''
@@ -61,9 +62,26 @@ class Mapper(object):
             for x in i['bondlist']:
                 connections[repl[x[0] + lrepl]][repl[x[1] + lrepl]] = connections[repl[x[1] + lrepl]][
                     repl[x[0] + lrepl]] = x[2]
-
         return connections
 
+    def __dosearch(self, connections):
+        self.__connections = connections
+        total = {}
+        for i in self.__connections:
+            self.__fragments = defaultdict(int)
+            self.__lcs([i], i)
+            total[i] = self.__fragments
+        return total
+
+    def __lcs(self, trace, inter):
+        iterlist = list(set(self.__connections[inter]) - set(trace))
+        if len(trace) // 2 + 1 < self.__max:
+            for i in iterlist:
+                self.__lcs(trace + [self.__connections[trace[-1]][i], i], i)
+        if len(trace) // 2 + 1 >= self.__min:  # or not iterlist and len(self.__connections[trace[0]]) < 2 and self.__small:
+            atoms = [tuple(x[1:]) for x in trace[::2]]
+            frag = [item for sublist in zip(atoms, trace[1::2]) for item in sublist] + atoms[-1:]
+            self.__fragments[tuple(frag)] += 1
 
 if __name__ == '__main__':
     main()

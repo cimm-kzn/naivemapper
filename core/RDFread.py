@@ -20,8 +20,6 @@
 #  MA 02110-1301, USA.
 #
 from collections import defaultdict
-import os
-import subprocess as sp
 import numpy
 
 
@@ -37,7 +35,7 @@ class RDFread(object):
     def chkRDF(self):
         try:
             f = open(self.__RDFfile)
-            if "$RDFILE 1" in f.next():
+            if "$RDFILE 1" in next(f):
                 return True
             else:
                 return False
@@ -59,7 +57,6 @@ class RDFread(object):
             rid = 0
             for n, line in enumerate(f):
                 if not failkey and "$RXN" not in line[0:4]:
-                    print rid
                     continue
                 elif "$RXN" in line[0:4]:
                     rid += 1
@@ -76,14 +73,12 @@ class RDFread(object):
                         failkey = False
                         reaction = None
                 elif "$MOL" in line[0:4]:
-                    molecule = {'atomlist': [], 'bondmatrix': None, 'bondlist': []}
+                    molecule = {'atomlist': [], 'bondlist': []}
                     im = n + 4
                 elif n == im:
                     try:
                         atomcount = int(line[0:3]) + im
                         bondcount = int(line[3:6]) + atomcount
-                        if atomcount == bondcount:
-                            molecule['bondmatrix'] = numpy.zeros((1, 1), dtype=float)
                     except:
                         failkey = False
                         reaction = None
@@ -93,9 +88,6 @@ class RDFread(object):
                                                      x=float(line[0:10]), y=float(line[10:20]), z=float(line[20:30])))
                 elif n <= bondcount:
                     try:
-                        if molecule['bondmatrix'] is None:
-                            mlen = len(molecule['atomlist'])
-                            molecule['bondmatrix'] = numpy.zeros((mlen, mlen), dtype=float)
                         a1, a2 = int(line[0:3]) - 1, int(line[3:6]) - 1
                         molecule['bondlist'].append((a1, a2, int(line[6:9]), int(line[9:12])))
                     except:
