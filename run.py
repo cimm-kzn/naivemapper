@@ -25,6 +25,7 @@ from core.fragger import Fragger
 from core.RDFread import RDFread
 from core.version import version
 from core.RDFwrite import RDFwrite
+from core.Prepare import Prepare
 
 
 def main():
@@ -44,6 +45,7 @@ def main():
 
     out = RDFwrite(options['output'])
     fragger = Fragger(**options)
+    collector = Prepare()
     e = 0
 
     for i, data in enumerate(inp.readdata()):
@@ -53,6 +55,7 @@ def main():
         try:
             res = fragger.get(data)
             print(res)
+            collector.collect(res)
         except:
             e += 1
             print("Error: %d" % (i + 1))

@@ -20,8 +20,6 @@
 #  MA 02110-1301, USA.
 #
 from collections import defaultdict
-import copy
-import numpy
 
 
 def main():
@@ -46,7 +44,8 @@ class Fragger(object):
 
         return result
 
-    def __getmatrix(self, data):
+    @staticmethod
+    def __getmatrix(data):
         '''
         объединение матриц связности группы молекул
         '''
