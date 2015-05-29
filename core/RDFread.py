@@ -20,7 +20,6 @@
 #  MA 02110-1301, USA.
 #
 from collections import defaultdict
-import numpy
 
 
 def main():

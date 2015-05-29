@@ -58,6 +58,8 @@ class Fragger(object):
                 key = (x + lrepl, y['element'], y['izotop'])
                 connections[key] = {}
                 repl.append(key)
+
+
             for x in i['bondlist']:
                 connections[repl[x[0] + lrepl]][repl[x[1] + lrepl]] = connections[repl[x[1] + lrepl]][
                     repl[x[0] + lrepl]] = x[2]

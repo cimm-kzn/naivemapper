@@ -55,10 +55,20 @@ def main():
         try:
             res = fragger.get(data)
             print(res)
-            collector.collect(res)
+            maps_dict = collector.good_map(data)
+            print(maps_dict)
+            new_data = collector.collect(res)
+            print(new_data)
+
+            #function_map = YYYY
+
         except:
             e += 1
             print("Error: %d" % (i + 1))
+
+    bit,y,index_bit = collector.bit_string(new_data)
+    print(bit)
+    print(y)
 
     print("Checked %d reactions. %d reactions consist exception errors" % (i + 1, e))
     return 0
