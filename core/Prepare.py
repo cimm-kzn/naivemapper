@@ -1,10 +1,10 @@
-__author__ = 'stsouko'
+__author__ = 'valiaafo'
 import numpy as np
 
 
 class Prepare(object):
     def __init__(self):
-        self.__header = {}
+        #self.__header = {}
         self.__header_index = 0
         self.__atomfragcount = {}
         self.__atomfragcount_index = 0
@@ -13,11 +13,12 @@ class Prepare(object):
         self.__map = {}
         self.__map_index = 0
         self.__y = []
+        self.__num_atoms_react = []
 
 
 
 
-    def collect(self, data):
+    def collect(self, data, header, mode):
         self.__atomfragcount[self.__atomfragcount_index] = {}
         for role,frags in data.items():
             self.__atomfragcount[self.__atomfragcount_index][role] = {}
@@ -27,14 +28,15 @@ class Prepare(object):
                 self.__atomfragcount[self.__atomfragcount_index][role][number_a] = {}
                 self.__atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a] = {}
                 for fname,count in fragments.items():
-                    if self.__header.get(fname) is not None:
-                        pass
-                    else:
-                        self.__header[fname] = self.__header_index
-                        self.__header_index += 1
-                    self.__atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][self.__header[fname]]= count
+                    if mode == 0:
+                        if header.get(fname) is not None:
+                            pass
+                        else:
+                            header[fname] = self.__header_index
+                            self.__header_index += 1
+                    self.__atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
         self.__atomfragcount_index +=1
-        return self.__atomfragcount
+        return self.__atomfragcount,header
 
     def good_map(self, data):
         self.__map[self.__map_index] = {}
@@ -53,19 +55,17 @@ class Prepare(object):
                                 self.__map[self.__map_index][role][num_a] = {}
                                 chet.append(j)
                                 for dat2,dat_value in dat_atom[j].items():
-                                    # if dat2 == 'element':
-                                    #     sym_a = dat_value
-                                    #     self.__map[self.__map_index][role][num_a][sym_a] = {}
-                                    #     for dat2,dat_value in dat_atom[j].items():
-                                            if dat2 == 'map':
-                                                map_a = int(dat_value)
-                                                self.__map[self.__map_index][role][num_a] = map_a
+                                    if dat2 == 'map':
+                                       map_a = int(dat_value)
+                                       self.__map[self.__map_index][role][num_a] = map_a
         self.__map_index += 1
         maps_dict = self.__map
         return maps_dict
 
 
-    def bit_string(self,data):
+    def bit_string(self,data,header,bit,mode):
+        if mode == 0:
+            bit = self.__bit
         for reaction,react in data.items():
             for role,atom in react.items():
                 if role == 'products':
@@ -87,7 +87,6 @@ class Prepare(object):
                                                 # print('no, reaction N',reaction)
                                                 # print('atom of substrats N',num_s,', symbol = ',sym_s)
                                                 # print('atom of products N',num_p,', symbol = ',sym_p)
-                                                # print(fr_s,', ',frags1)
                                                 pass
                                             else:
                                                 # print('reaction N',reaction)
@@ -95,7 +94,7 @@ class Prepare(object):
                                                 # print('atom of products N',num_p,', symbol = ',sym_p)
                                                 # print(frags,frags1)
                                                 # print(set(frags).intersection(frags1))
-                                                temp_bit = [0 for x in range(self.__header_index)]
+                                                temp_bit = [0 for x in range(len(header))]
                                                 # print(temp_bit)
                                                 com_frag = list(set(frags).intersection(frags1))
                                                 # print(com_frag)
@@ -104,18 +103,19 @@ class Prepare(object):
                                                     # print(temp_bit)
                                                 self.__index_bit.append((reaction,num_s,num_p))
                                                 self.__bit.append(temp_bit)
-                                                if self.__map[reaction]['substrats'][num_s] == self.__map[reaction]['products'][num_p]:
-                                                    m = 1
-                                                else:
-                                                    m = 0
-                                                self.__y.append(m)
+                                                if mode == 0:
+                                                    if self.__map[reaction]['substrats'][num_s] == self.__map[reaction]['products'][num_p]:
+                                                        m = 1
+                                                    else:
+                                                        m = 0
+                                                    self.__y.append(m)
         self.__bit = np.array(self.__bit)
         np.set_printoptions(threshold=np.nan)
         # print(self.__bit,type(self.__bit),type(self.__bit[0]),type(self.__bit[0][0]))
         bit_string_res = self.__bit
         y = np.array(self.__y)
         index_bit = self.__index_bit
-        return bit_string_res, y,index_bit
+        return bit_string_res,y,index_bit
 
 
 
