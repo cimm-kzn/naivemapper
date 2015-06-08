@@ -39,7 +39,7 @@ def main():
     rawopts.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
     rawopts.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     rawopts.add_argument("--model", "-n", type=str, default="model", help="name of file with model")
-    rawopts.add_argument("--predict", "-p", type=bool, default=0, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
+    rawopts.add_argument("--predict", "-p", type=bool, default=1, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
     options = vars(rawopts.parse_args())
 
     inp = RDFread(options['input'])
@@ -75,7 +75,7 @@ def main():
                 e += 1
                 print("Error: %d" % (i + 1))
 
-        bit,y,index_bit,header = collector.bit_string(new_data,header,0) #,bit
+        bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,0)
         print(bit)
         print(len(bit))
         print(y)
@@ -85,8 +85,8 @@ def main():
         filename_extension = '.pickle'
         filename = folder+filename+filename_extension
 
-        model = Models()
-        new_model = model.learning(bit,y)
+        Model = Models()
+        new_model = Model.learning(bit,y)
         model_and_header = {'model':new_model,'header':header}
 
         with open(filename,'wb') as f_tr_model_and_header:
@@ -105,6 +105,8 @@ def main():
         filename_extension = '.pickle'
         filename = folder+filename+filename_extension
 
+        Model = Models()
+
         with open(filename,'rb') as f_tr_model_and_header:
             model_and_header = pickle.load(f_tr_model_and_header)
         f_tr_model_and_header.close()
@@ -121,10 +123,14 @@ def main():
                 print('res = ',res)
                 new_data,header = collector.collect(res,header,atomfragcount,1)
                 print('new_data = ',new_data)
-                bit,y,index_bit,header = collector.bit_string(new_data,header,1) #,bit
+                bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1) #,bit
                 print('bit',bit)
-                # probabilities = model.predict(model,bit)
-                # print('probabilities = ',probabilities)
+                print('type of bit',type(bit))
+                print('index_bit = ',index_bit)
+                probabilities = Model.predict(model,bit)
+                print('probabilities = ',probabilities)
+                print('len of probabilities =',len(probabilities))
+                Model.mapping(index_bit,probabilities,quantity_a)
 
             except:
                 e += 1

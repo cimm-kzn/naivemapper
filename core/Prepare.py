@@ -39,6 +39,7 @@ class Prepare(object):
                             header[fname] = self.__header_index
                             self.__header_index += 1
                     atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
+
         self.__atomfragcount_index +=1
         return atomfragcount,header
 
@@ -67,19 +68,21 @@ class Prepare(object):
         return maps_dict
 
 
-    def bit_string(self,data,header,mode): #bit,
-        # bit = self.__bit
+    def bit_string(self,data,header,mode):
+        index_bit = []
         if mode == 1:
             self.__bit = []
             self.__bit.clear()
+        quantity_a = 0
         for reaction,react in data.items():
-
             for role,atom in react.items():
                 if role == 'products':
                     pass
                 else:
                     for number_a,sym_and_frag in atom.items():
                         num_s = number_a
+                        if num_s > quantity_a:
+                            quantity_a +=1
                         for symbol_a,frags in sym_and_frag.items():
                             sym_s = symbol_a
                             for role,atom in react.items():
@@ -104,15 +107,15 @@ class Prepare(object):
                                                 temp_bit = [0 for x in range(len(header))]
                                                 # print(temp_bit)
                                                 com_frag = list(set(frags).intersection(frags1))
-                                                print('com_frag = ',com_frag)
+                                                # print('com_frag = ',com_frag)
                                                 for i in range(len(com_frag)):
                                                     temp_bit[com_frag[i]] = 1
-                                                    print('temp_bit = ',temp_bit)
-                                                self.__index_bit.append((reaction,num_s,num_p))
-                                                print('self.__index_bit = ',self.__index_bit)
-                                                print('self.__bit 1 = ',self.__bit)
+                                                    # print('temp_bit = ',temp_bit)
+                                                index_bit.append((reaction,num_s,num_p))
+                                                # print('self.__index_bit = ',self.__index_bit)
+                                                # print('self.__bit 1 = ',self.__bit)
                                                 self.__bit.append(temp_bit)
-                                                print('self.__bit = ',self.__bit)
+                                                # print('self.__bit = ',self.__bit)
                                                 if mode == 0:
                                                     if self.__map[reaction]['substrats'][num_s] == self.__map[reaction]['products'][num_p]:
                                                         m = 1
@@ -128,12 +131,14 @@ class Prepare(object):
             y = np.array(self.__y)
         else:
             y = self.__y
-        index_bit = self.__index_bit
+        # index_bit = self.__index_bit
         # print('index_bit = ',index_bit)
         # print('y = ',y)
         # print('header = ',header)
         # print(len(bit_string_res))
-        return bit_string_res,y,index_bit,header
+        quantity_a += 1
+        print('kol = ',quantity_a)
+        return bit_string_res,y,index_bit,header,quantity_a
 
 
 
