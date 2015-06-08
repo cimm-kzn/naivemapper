@@ -18,15 +18,19 @@ class Prepare(object):
 
 
 
-    def collect(self, data, header, mode):
-        self.__atomfragcount[self.__atomfragcount_index] = {}
+    def collect(self, data, header,atomfragcount,mode):
+        if mode == 0:
+            atomfragcount = self.__atomfragcount
+        else:
+            atomfragcount.clear()
+        atomfragcount[self.__atomfragcount_index] = {}
         for role,frags in data.items():
-            self.__atomfragcount[self.__atomfragcount_index][role] = {}
+            atomfragcount[self.__atomfragcount_index][role] = {}
             for atom,fragments in frags.items():
                 number_a = atom[0]
                 symbol_a = atom[1]
-                self.__atomfragcount[self.__atomfragcount_index][role][number_a] = {}
-                self.__atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a] = {}
+                atomfragcount[self.__atomfragcount_index][role][number_a] = {}
+                atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a] = {}
                 for fname,count in fragments.items():
                     if mode == 0:
                         if header.get(fname) is not None:
@@ -34,9 +38,9 @@ class Prepare(object):
                         else:
                             header[fname] = self.__header_index
                             self.__header_index += 1
-                    self.__atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
+                    atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
         self.__atomfragcount_index +=1
-        return self.__atomfragcount,header
+        return atomfragcount,header
 
     def good_map(self, data):
         self.__map[self.__map_index] = {}
@@ -63,10 +67,13 @@ class Prepare(object):
         return maps_dict
 
 
-    def bit_string(self,data,header,bit,mode):
-        if mode == 0:
-            bit = self.__bit
+    def bit_string(self,data,header,mode): #bit,
+        # bit = self.__bit
+        if mode == 1:
+            self.__bit = []
+            self.__bit.clear()
         for reaction,react in data.items():
+
             for role,atom in react.items():
                 if role == 'products':
                     pass
@@ -97,12 +104,15 @@ class Prepare(object):
                                                 temp_bit = [0 for x in range(len(header))]
                                                 # print(temp_bit)
                                                 com_frag = list(set(frags).intersection(frags1))
-                                                # print(com_frag)
+                                                print('com_frag = ',com_frag)
                                                 for i in range(len(com_frag)):
                                                     temp_bit[com_frag[i]] = 1
-                                                    # print(temp_bit)
+                                                    print('temp_bit = ',temp_bit)
                                                 self.__index_bit.append((reaction,num_s,num_p))
+                                                print('self.__index_bit = ',self.__index_bit)
+                                                print('self.__bit 1 = ',self.__bit)
                                                 self.__bit.append(temp_bit)
+                                                print('self.__bit = ',self.__bit)
                                                 if mode == 0:
                                                     if self.__map[reaction]['substrats'][num_s] == self.__map[reaction]['products'][num_p]:
                                                         m = 1
@@ -110,12 +120,20 @@ class Prepare(object):
                                                         m = 0
                                                     self.__y.append(m)
         self.__bit = np.array(self.__bit)
+        # print('np.array(self.__bit) = ',self.__bit)
         np.set_printoptions(threshold=np.nan)
-        # print(self.__bit,type(self.__bit),type(self.__bit[0]),type(self.__bit[0][0]))
         bit_string_res = self.__bit
-        y = np.array(self.__y)
+        # print('bit_string_res = ',bit_string_res)
+        if mode == 0:
+            y = np.array(self.__y)
+        else:
+            y = self.__y
         index_bit = self.__index_bit
-        return bit_string_res,y,index_bit
+        # print('index_bit = ',index_bit)
+        # print('y = ',y)
+        # print('header = ',header)
+        # print(len(bit_string_res))
+        return bit_string_res,y,index_bit,header
 
 
 
