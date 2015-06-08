@@ -48,6 +48,11 @@ class Models(object):
             total_cost += x
         print(indexes)
         print(total_cost)
+        indx = {}
+        for i in range(len(indexes)):
+            indx[indexes[i][0]] = indexes[i][1]
+        print(indx)
+        return indx
 
 
 

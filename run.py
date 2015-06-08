@@ -130,7 +130,29 @@ def main():
                 probabilities = Model.predict(model,bit)
                 print('probabilities = ',probabilities)
                 print('len of probabilities =',len(probabilities))
-                Model.mapping(index_bit,probabilities,quantity_a)
+                index_map = Model.mapping(index_bit,probabilities,quantity_a)
+                ind = 1
+                for role,dat in data.items():
+                    if role == 'substract':
+                        for i in range(len(dat)):
+                            for list_type, dat_atom in dat[i].items():
+                                if list_type == 'atomlist':
+                                    for j in range(len(dat_atom)):
+                                        for prop,count in dat_atom[j].items():
+                                            if prop == 'map':
+                                                print(data[role][i][list_type][j][prop])
+                                                data[role][i][list_type][j][prop] = ind
+                                                ind += 1
+                    elif role == 'product':
+                        for i in range(len(dat)):
+                            for list_type, dat_atom in dat[i].items():
+                                if list_type == 'atomlist':
+                                    for j in range(len(dat_atom)):
+                                        for prop,count in dat_atom[j].items():
+                                            if prop == 'map':
+                                                pass
+
+
 
             except:
                 e += 1
