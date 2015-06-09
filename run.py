@@ -114,50 +114,49 @@ def main():
         model = model_and_header['model']
 
         for i, data in enumerate(inp.readdata()):
-            print(data)
             if i % 100 == 0 and i:
                 print("reaction: %d" % (i + 1))
             #res = calc.firstcgr(data)
+
             try:
                 res = fragger.get(data)
-                print('res = ',res)
+                # print('res = ',res)
                 new_data,header = collector.collect(res,header,atomfragcount,1)
-                print('new_data = ',new_data)
+                # print('new_data = ',new_data)
                 bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1) #,bit
-                print('bit',bit)
-                print('type of bit',type(bit))
-                print('index_bit = ',index_bit)
+                # print('bit',bit)
+                # print('type of bit',type(bit))
+                # print('index_bit = ',index_bit)
                 probabilities = Model.predict(model,bit)
-                print('probabilities = ',probabilities)
-                print('len of probabilities =',len(probabilities))
+                # print('probabilities = ',probabilities)
                 index_map = Model.mapping(index_bit,probabilities,quantity_a)
+                # print(index_map)
                 ind = 1
+                s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
+                p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
+                # print(s_map)
+                # print(p_map)
+
                 for role,dat in data.items():
-                    if role == 'substract':
-                        for i in range(len(dat)):
-                            for list_type, dat_atom in dat[i].items():
+                    if role == 'substrats':
+                        for i,datum in enumerate(dat):
+                            for list_type, dat_atom in datum.items():
                                 if list_type == 'atomlist':
-                                    for j in range(len(dat_atom)):
-                                        for prop,count in dat_atom[j].items():
+                                    for j,properties in enumerate(dat_atom):
+                                        for prop,count in properties.items():
                                             if prop == 'map':
-                                                print(data[role][i][list_type][j][prop])
-                                                data[role][i][list_type][j][prop] = ind
+                                                data['substrats'][i]['atomlist'][j]['map'] = ind
+                                                l = s_map.index((i,j)) # получили положение кортежа в списке реагентов, соответствующее сквозному номеру атома реагента
+                                                k = index_map[l] # по сквозному номеру атома реагента находим атом продукта, которому он соответствует
+                                                m,n = p_map[k] # получаем номер молекулы и номер атома продукта в данной молекуле
+                                                data['products'][m]['atomlist'][n]['map'] = ind
                                                 ind += 1
-                    elif role == 'product':
-                        for i in range(len(dat)):
-                            for list_type, dat_atom in dat[i].items():
-                                if list_type == 'atomlist':
-                                    for j in range(len(dat_atom)):
-                                        for prop,count in dat_atom[j].items():
-                                            if prop == 'map':
-                                                pass
-
-
+                out.write(data)
 
             except:
                 e += 1
                 print("Error: %d" % (i + 1))
-
+            #out.write(data)
 
 
     print("Checked %d reactions. %d reactions consist exception errors" % (i + 1, e))

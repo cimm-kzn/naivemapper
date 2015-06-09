@@ -37,9 +37,12 @@ class RDFwrite(object):
         for m in data['substrats'] + data['products']:
             self.__RDFfile.write('$MOL\n\n  core\n\n%3d%3d  0  0  0  0            999 V2000\n' % (len(m['atomlist']), len(m['bondlist'])))
             for a in m['atomlist']:
-                self.__RDFfile.write("%(x)10.4f%(y)10.4f%(z)10.4f %(element)-3s%(izotop)2s%(charge)3s  0  0  0  0  0%(mark)3s  0%(map)3s  0  0\n" % a)
+                self.__RDFfile.write("%(x)10.4f%(y)10.4f%(z)10.4f %(element)-3s%(izotop)2s%(charge)3s  0  0  0  0  0  0  0%(map)3s  0  0\n" % a)
             for b in m['bondlist']:
-                self.__RDFfile.write("%3s%3s%3s%3s  0  0  0\n" % b)
+                c = list(b)
+                c[0] += 1
+                c[1] += 1
+                self.__RDFfile.write("%3s%3s%3s%3s  0  0  0\n" % tuple(c))
             self.__RDFfile.write("M  END\n")
         for p in data['meta'].items():
             self.__RDFfile.write('$DTYPE %s\n$DATUM %s\n' % p)

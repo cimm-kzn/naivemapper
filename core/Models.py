@@ -46,8 +46,8 @@ class Models(object):
         for s, p in indexes:
             x = prob_matrix[s, p]
             total_cost += x
-        print(indexes)
-        print(total_cost)
+        # print(indexes)
+        # print(total_cost)
         indx = {}
         for i in range(len(indexes)):
             indx[indexes[i][0]] = indexes[i][1]
