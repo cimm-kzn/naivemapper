@@ -21,6 +21,7 @@ class Prepare(object):
     def collect(self, data, header,atomfragcount,mode):
         if mode == 0:
             atomfragcount = self.__atomfragcount
+            # print('atomfragcount from collect = ',atomfragcount)
         else:
             atomfragcount.clear()
         atomfragcount[self.__atomfragcount_index] = {}
@@ -38,9 +39,15 @@ class Prepare(object):
                         else:
                             header[fname] = self.__header_index
                             self.__header_index += 1
-                    atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
+                        atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
+                    else:
+                        # if header.get(fname) is None:
+                        #     pass
+                        # else:
+                            atomfragcount[self.__atomfragcount_index][role][number_a][symbol_a][header[fname]]= count
 
         self.__atomfragcount_index +=1
+        # print('atomfragcount from collect 2 = ',atomfragcount)
         return atomfragcount,header
 
     def good_map(self, data):
@@ -65,10 +72,12 @@ class Prepare(object):
                                        self.__map[self.__map_index][role][num_a] = map_a
         self.__map_index += 1
         maps_dict = self.__map
+        # print(maps_dict)
         return maps_dict
 
 
     def bit_string(self,data,header,mode):
+        print('data = ',data)
         index_bit = []
         if mode == 1:
             self.__bit = []
@@ -84,6 +93,7 @@ class Prepare(object):
                         if num_s > quantity_a:
                             quantity_a +=1
                         for symbol_a,frags in sym_and_frag.items():
+                            # print('frags = ',frags)
                             sym_s = symbol_a
                             for role,atom in react.items():
                                 if role == 'substrats':
@@ -92,6 +102,7 @@ class Prepare(object):
                                     for number_a,sym_and_frag in atom.items():
                                         num_p = number_a
                                         for symbol_a,frags1 in sym_and_frag.items():
+                                            # print('frags1 = ',frags1)
                                             sym_p = symbol_a
                                             if sym_s != sym_p:
                                                 # print('no, reaction N',reaction)
@@ -137,7 +148,7 @@ class Prepare(object):
         # print('header = ',header)
         # print(len(bit_string_res))
         quantity_a += 1
-        print('kol = ',quantity_a)
+        # print('kol = ',quantity_a)
         return bit_string_res,y,index_bit,header,quantity_a
 
 

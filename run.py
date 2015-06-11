@@ -39,7 +39,7 @@ def main():
     rawopts.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
     rawopts.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     rawopts.add_argument("--model", "-n", type=str, default="model", help="name of file with model")
-    rawopts.add_argument("--predict", "-p", type=bool, default=1, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
+    rawopts.add_argument("--predict", "-p", type=bool, default=0, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
     options = vars(rawopts.parse_args())
 
     inp = RDFread(options['input'])
@@ -67,16 +67,17 @@ def main():
                 res = fragger.get(data)
                 print('res = ',res)
                 maps_dict = collector.good_map(data)
-                print(maps_dict)
+                print('maps_dict = ',maps_dict)
                 new_data,header = collector.collect(res,header,atomfragcount,0)
-                print(header)
+                print('header =',header)
+                print('new_data =',new_data)
 
             except:
                 e += 1
                 print("Error: %d" % (i + 1))
 
         bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,0)
-        print(bit)
+        print('bit = ',bit)
         print(len(bit))
         print(y)
 
@@ -118,44 +119,44 @@ def main():
                 print("reaction: %d" % (i + 1))
             #res = calc.firstcgr(data)
 
-            try:
-                res = fragger.get(data)
-                # print('res = ',res)
-                new_data,header = collector.collect(res,header,atomfragcount,1)
-                # print('new_data = ',new_data)
-                bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1) #,bit
-                # print('bit',bit)
-                # print('type of bit',type(bit))
-                # print('index_bit = ',index_bit)
-                probabilities = Model.predict(model,bit)
-                # print('probabilities = ',probabilities)
-                index_map = Model.mapping(index_bit,probabilities,quantity_a)
-                # print(index_map)
-                ind = 1
-                s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
-                p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
-                # print(s_map)
-                # print(p_map)
+            # try:
+            res = fragger.get(data)
+            # print('res = ',res)
+            new_data,header = collector.collect(res,header,atomfragcount,1)
+            # print('new_data = ',new_data)
+            bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1) #,bit
+            print('bit',bit)
+            # print('type of bit',type(bit))
+            # print('index_bit = ',index_bit)
+            probabilities = Model.predict(model,bit)
+            # print('probabilities = ',probabilities)
+            index_map = Model.mapping(index_bit,probabilities,quantity_a)
+            # print(index_map)
+            ind = 1
+            s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
+            p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
+            # print(s_map)
+            # print(p_map)
 
-                for role,dat in data.items():
-                    if role == 'substrats':
-                        for i,datum in enumerate(dat):
-                            for list_type, dat_atom in datum.items():
-                                if list_type == 'atomlist':
-                                    for j,properties in enumerate(dat_atom):
-                                        for prop,count in properties.items():
-                                            if prop == 'map':
-                                                data['substrats'][i]['atomlist'][j]['map'] = ind
-                                                l = s_map.index((i,j)) # получили положение кортежа в списке реагентов, соответствующее сквозному номеру атома реагента
-                                                k = index_map[l] # по сквозному номеру атома реагента находим атом продукта, которому он соответствует
-                                                m,n = p_map[k] # получаем номер молекулы и номер атома продукта в данной молекуле
-                                                data['products'][m]['atomlist'][n]['map'] = ind
-                                                ind += 1
-                out.write(data)
+            for role,dat in data.items():
+                if role == 'substrats':
+                    for i,datum in enumerate(dat):
+                        for list_type, dat_atom in datum.items():
+                            if list_type == 'atomlist':
+                                for j,properties in enumerate(dat_atom):
+                                    for prop,count in properties.items():
+                                        if prop == 'map':
+                                            data['substrats'][i]['atomlist'][j]['map'] = ind
+                                            l = s_map.index((i,j)) # получили положение кортежа в списке реагентов, соответствующее сквозному номеру атома реагента
+                                            k = index_map[l] # по сквозному номеру атома реагента находим атом продукта, которому он соответствует
+                                            m,n = p_map[k] # получаем номер молекулы и номер атома продукта в данной молекуле
+                                            data['products'][m]['atomlist'][n]['map'] = ind
+                                            ind += 1
+            out.write(data)
 
-            except:
-                e += 1
-                print("Error: %d" % (i + 1))
+            # except:
+            #     e += 1
+            #     print("Error: %d" % (i + 1))
             #out.write(data)
 
 

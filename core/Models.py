@@ -27,10 +27,10 @@ class Models(object):
         #return prob
 
     def mapping(self,index_bit,probabilities,quantity_a):
-        print(index_bit)
+        # print(index_bit)
         num = float('inf')
         prob_matrix = np.zeros((quantity_a,quantity_a))
-        print(prob_matrix)
+        # print(prob_matrix)
         for i in range(len(probabilities)):
             pr_i = probabilities[i][0]*(-1)
             k = index_bit[i][1]
@@ -51,7 +51,7 @@ class Models(object):
         indx = {}
         for i in range(len(indexes)):
             indx[indexes[i][0]] = indexes[i][1]
-        print(indx)
+        # print(indx)
         return indx
 
 
