@@ -60,18 +60,13 @@ def main():
 
 
         for i, data in enumerate(inp.readdata()):
-            # print(data)
             if i % 100 == 0 and i:
                 print("reaction: %d" % (i + 1))
             #res = calc.firstcgr(data)
             try:
                 res = fragger.get(data)
-                # print('res = ',res)
                 maps_dict = collector.good_map(data)
-                # print('maps_dict = ',maps_dict)
                 new_data,header = collector.collect(res,header,atomfragcount,0)
-                # print('header =',header)
-                # print('new_data =',new_data)
 
             except:
                 e += 1
@@ -79,7 +74,6 @@ def main():
 
         bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,0,bitstring)
         print('bit = ',bit)
-        # print(len(bit))
         print(y)
 
         filename = options['model']
@@ -122,24 +116,13 @@ def main():
 
             # try:
             res = fragger.get(data)
-            # print('res = ',res)
             new_data,header = collector.collect(res,header,atomfragcount,1)
-            # print('new_data = ',new_data)
-            # print(header)
             bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1,bitstring)
-            # print('bit',bit)
-            # print('type of bit',type(bit))
-            # print('index_bit = ',index_bit)
             probabilities = Model.predict(model,bit)
-            # print('probabilities = ',probabilities)
-            # print(index_bit)
             index_map = Model.mapping(index_bit,probabilities,quantity_a)
-            # print(index_map)
             ind = 1
             s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
             p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
-            # print(s_map)
-            # print(p_map)
 
             for role,dat in data.items():
                 if role == 'substrats':

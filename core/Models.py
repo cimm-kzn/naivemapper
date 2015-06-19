@@ -14,7 +14,6 @@ class Models(object):
         Y = y
         model = BernoulliNB()
         model.fit(X, Y)
-        # print(model)
         return model
 
 
@@ -25,7 +24,6 @@ class Models(object):
         prob = model.predict_proba(new_x)
         print(prob)
         return log_of_prob
-        #return prob
 
     def mapping(self,index_bit,probabilities,quantity_a):
         # print(index_bit)
@@ -41,18 +39,14 @@ class Models(object):
             for n in range(len(prob_matrix[m])):
                 if prob_matrix[m][n] == 0:
                     prob_matrix[m][n] = num
-        # print(prob_matrix)
         indexes = _hungarian(prob_matrix)
         total_cost = 0
         for s, p in indexes:
             x = prob_matrix[s, p]
             total_cost += x
-        # print('indexes = ',indexes)
-        # print('total_cost = ',total_cost)
         indx = {}
         for i in range(len(indexes)):
             indx[indexes[i][0]] = indexes[i][1]
-        # print(indx)
         return indx
 
 
