@@ -39,7 +39,8 @@ def main():
     rawopts.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
     rawopts.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     rawopts.add_argument("--model", "-n", type=str, default="model", help="name of file with model")
-    rawopts.add_argument("--predict", "-p", type=bool, default=0, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
+    rawopts.add_argument("--predict", "-p", type=bool, default=1, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
+    rawopts.add_argument("--bitstring", "-b", type=int, default=1, help="type of united bitstring for atomic bitstrings A and B: 0 - A*B, 1- A+B+A*B")
     options = vars(rawopts.parse_args())
 
     inp = RDFread(options['input'])
@@ -49,7 +50,7 @@ def main():
 
     bit = []
     atomfragcount = {}
-
+    bitstring = options['bitstring']
 
     if options['predict'] == 0:
         fragger = Fragger(**options)
@@ -59,26 +60,26 @@ def main():
 
 
         for i, data in enumerate(inp.readdata()):
-            print(data)
+            # print(data)
             if i % 100 == 0 and i:
                 print("reaction: %d" % (i + 1))
             #res = calc.firstcgr(data)
             try:
                 res = fragger.get(data)
-                print('res = ',res)
+                # print('res = ',res)
                 maps_dict = collector.good_map(data)
-                print('maps_dict = ',maps_dict)
+                # print('maps_dict = ',maps_dict)
                 new_data,header = collector.collect(res,header,atomfragcount,0)
-                print('header =',header)
-                print('new_data =',new_data)
+                # print('header =',header)
+                # print('new_data =',new_data)
 
             except:
                 e += 1
                 print("Error: %d" % (i + 1))
 
-        bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,0)
+        bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,0,bitstring)
         print('bit = ',bit)
-        print(len(bit))
+        # print(len(bit))
         print(y)
 
         filename = options['model']
@@ -124,12 +125,14 @@ def main():
             # print('res = ',res)
             new_data,header = collector.collect(res,header,atomfragcount,1)
             # print('new_data = ',new_data)
-            bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1) #,bit
-            print('bit',bit)
+            # print(header)
+            bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1,bitstring)
+            # print('bit',bit)
             # print('type of bit',type(bit))
             # print('index_bit = ',index_bit)
             probabilities = Model.predict(model,bit)
             # print('probabilities = ',probabilities)
+            # print(index_bit)
             index_map = Model.mapping(index_bit,probabilities,quantity_a)
             # print(index_map)
             ind = 1

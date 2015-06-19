@@ -14,15 +14,16 @@ class Models(object):
         Y = y
         model = BernoulliNB()
         model.fit(X, Y)
-        print(model)
+        # print(model)
         return model
 
 
     def predict(self,model,new_x):
         # BernoulliNB(alpha=1.0, binarize=None, class_prior=None, fit_prior=True)
         log_of_prob = model.predict_log_proba(new_x)
-        print(log_of_prob)
+        print('log_of_prob = ',log_of_prob)
         prob = model.predict_proba(new_x)
+        print(prob)
         return log_of_prob
         #return prob
 
@@ -40,14 +41,14 @@ class Models(object):
             for n in range(len(prob_matrix[m])):
                 if prob_matrix[m][n] == 0:
                     prob_matrix[m][n] = num
-        print(prob_matrix)
+        # print(prob_matrix)
         indexes = _hungarian(prob_matrix)
         total_cost = 0
         for s, p in indexes:
             x = prob_matrix[s, p]
             total_cost += x
-        # print(indexes)
-        # print(total_cost)
+        # print('indexes = ',indexes)
+        # print('total_cost = ',total_cost)
         indx = {}
         for i in range(len(indexes)):
             indx[indexes[i][0]] = indexes[i][1]

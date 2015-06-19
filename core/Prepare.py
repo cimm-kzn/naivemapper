@@ -19,6 +19,7 @@ class Prepare(object):
 
 
     def collect(self, data, header,atomfragcount,mode):
+        # print(data)
         if mode == 0:
             atomfragcount = self.__atomfragcount
             # print('atomfragcount from collect = ',atomfragcount)
@@ -51,6 +52,7 @@ class Prepare(object):
         return atomfragcount,header
 
     def good_map(self, data):
+        # print(data)
         self.__map[self.__map_index] = {}
         for role,dat in data.items():
             if role == 'meta':
@@ -76,8 +78,8 @@ class Prepare(object):
         return maps_dict
 
 
-    def bit_string(self,data,header,mode):
-        print('data = ',data)
+    def bit_string(self,data,header,mode,type_of_bitstring):
+        # print('data = ',data)
         index_bit = []
         if mode == 1:
             self.__bit = []
@@ -104,35 +106,42 @@ class Prepare(object):
                                         for symbol_a,frags1 in sym_and_frag.items():
                                             # print('frags1 = ',frags1)
                                             sym_p = symbol_a
-                                            if sym_s != sym_p:
-                                                # print('no, reaction N',reaction)
-                                                # print('atom of substrats N',num_s,', symbol = ',sym_s)
-                                                # print('atom of products N',num_p,', symbol = ',sym_p)
-                                                pass
-                                            else:
-                                                # print('reaction N',reaction)
-                                                # print('atom of substrats N',num_s,', symbol = ',sym_s)
-                                                # print('atom of products N',num_p,', symbol = ',sym_p)
-                                                # print(frags,frags1)
-                                                # print(set(frags).intersection(frags1))
-                                                temp_bit = [0 for x in range(len(header))]
-                                                # print(temp_bit)
-                                                com_frag = list(set(frags).intersection(frags1))
-                                                # print('com_frag = ',com_frag)
-                                                for i in range(len(com_frag)):
-                                                    temp_bit[com_frag[i]] = 1
-                                                    # print('temp_bit = ',temp_bit)
+                                            if sym_s == sym_p:
+                                                temp_bit_all = []
+                                                if type_of_bitstring == 0:
+                                                    temp_bit_sp = [0 for x in range(len(header))]
+                                                    com_frag = list(set(frags).intersection(frags1))
+                                                    for i in range(len(com_frag)):
+                                                        temp_bit_sp[com_frag[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_sp)
+                                                else:
+                                                    temp_bit_s = [0 for x in range(len(header))]
+                                                    for i in range(len(list(frags1.keys()))):
+                                                        temp_bit_s[list(frags1.keys())[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_s)
+                                                    temp_bit_p = [0 for x in range(len(header))]
+                                                    for i in range(len(list(frags.keys()))):
+                                                        temp_bit_p[list(frags.keys())[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_p)
+                                                    temp_bit_sp = [0 for x in range(len(header))]
+                                                    com_frag = list(set(frags).intersection(frags1))
+                                                    for i in range(len(com_frag)):
+                                                        temp_bit_sp[com_frag[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_sp)
+
                                                 index_bit.append((reaction,num_s,num_p))
-                                                # print('self.__index_bit = ',self.__index_bit)
-                                                # print('self.__bit 1 = ',self.__bit)
-                                                self.__bit.append(temp_bit)
-                                                # print('self.__bit = ',self.__bit)
+                                                self.__bit.append(temp_bit_all)
                                                 if mode == 0:
                                                     if self.__map[reaction]['substrats'][num_s] == self.__map[reaction]['products'][num_p]:
+                                                        # print('num_s = ',num_s)
+                                                        # print('self.__map[reaction][substrats][num_s]',self.__map[reaction]['substrats'][num_s])
+                                                        # print('self.__map[reaction][substrats][num_p]',self.__map[reaction]['substrats'][num_p])
                                                         m = 1
                                                     else:
                                                         m = 0
                                                     self.__y.append(m)
+                                                    # print('(reaction,num_s,num_p)',(reaction,num_s,num_p))
+                                                    # print('self.__y',self.__y)
         self.__bit = np.array(self.__bit)
         # print('np.array(self.__bit) = ',self.__bit)
         np.set_printoptions(threshold=np.nan)
