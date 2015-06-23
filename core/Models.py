@@ -9,23 +9,23 @@ class Models(object):
         pass
 
 
-    def learning(self,x,y,**parameters):
+    def learning(self,x,y,model,**parameters):
         X = x
         Y = y
-        model = BernoulliNB()
         model.set_params(binarize=None)
-        model.fit(X, Y)
-        print(model.get_params(deep=True))
-        print(model.score(X, Y))
+        all_classes = np.array([1, 0])
+        model.partial_fit(X, Y, classes=all_classes)
+        print(model)
         return model
 
 
     def predict(self,model,new_x):
         # BernoulliNB(alpha=1.0, binarize=None, class_prior=None, fit_prior=True)
         log_of_prob = model.predict_log_proba(new_x)
-        print('log_of_prob = ',log_of_prob)
+        # print('log_of_prob = ',log_of_prob)
         prob = model.predict_proba(new_x)
-        print(prob)
+
+        # print(prob)
         return log_of_prob
 
     def mapping(self,index_bit,probabilities,quantity_a):
@@ -33,15 +33,17 @@ class Models(object):
         num = float('inf')
         prob_matrix = np.zeros((quantity_a,quantity_a))
         # print(prob_matrix)
-        for i in range(len(probabilities)):
-            pr_i = probabilities[i][0]*(-1)
-            k = index_bit[i][1]
-            l = index_bit[i][2]
-            prob_matrix[k][l] = pr_i
         for m in range(len(prob_matrix)):
             for n in range(len(prob_matrix[m])):
                 if prob_matrix[m][n] == 0:
                     prob_matrix[m][n] = num
+        for i in range(len(probabilities)):
+            pr_i = probabilities[i][1]*(-1)
+            # print('probabilities[i][1] = ',probabilities[i][1])
+            k = index_bit[i][1]
+            l = index_bit[i][2]
+            prob_matrix[k][l] = pr_i
+
         indexes = _hungarian(prob_matrix)
         total_cost = 0
         for s, p in indexes:

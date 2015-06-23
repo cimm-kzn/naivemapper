@@ -30,6 +30,19 @@ from core.Models import Models
 
 import pickle
 
+import itertools
+
+from sklearn.naive_bayes import BernoulliNB
+
+
+def grouper(n, iterable):
+    it = iter(iterable)
+    while True:
+       chunk = tuple(itertools.islice(it, n))
+       if not chunk:
+           return
+       yield dict(chunk)
+
 def main():
     rawopts = argparse.ArgumentParser(description="Naive Reactions Automapper",
                                       epilog="Copyright 2015 Ramil Nugmanov <stsouko@live.ru>")
@@ -57,33 +70,35 @@ def main():
         collector = Prepare()
         e = 0
         header = {}
-
+        Model = Models()
+        model = BernoulliNB()
 
         for i, data in enumerate(inp.readdata()):
-            if i % 100 == 0 and i:
-                print("reaction: %d" % (i + 1))
-            #res = calc.firstcgr(data)
-            try:
-                res = fragger.get(data)
-                maps_dict = collector.good_map(data)
-                new_data,header = collector.collect(res,header,atomfragcount,0)
+                        if i % 100 == 0 and i:
+                            print("reaction: %d" % (i + 1))
+                        #res = calc.firstcgr(data)
+                        try:
+                            res = fragger.get(data)
+                            maps_dict = collector.good_map(data)
+                            new_data,header = collector.collect(res,header,atomfragcount,0)
 
-            except:
-                e += 1
-                print("Error: %d" % (i + 1))
+                        except:
+                            e += 1
+                            print("Error: %d" % (i + 1))
 
-        bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,0,bitstring)
-        print('bit = ',bit)
-        print(y)
-
+        for chunk in grouper(10,new_data.items()):
+            print('chunk = ',chunk)
+            bit,y,index_bit,header,quantity_a = collector.bit_string(chunk,header,0,bitstring)
+            print('Modeling in progress... X size: ', len(index_bit))
+            model = Model.learning(bit,y,model)
+        print(y, index_bit)
         filename = options['model']
         folder = 'trained_models\\'
         filename_extension = '.pickle'
         filename = folder+filename+filename_extension
 
-        Model = Models()
-        new_model = Model.learning(bit,y)
-        model_and_header = {'model':new_model,'header':header}
+
+        model_and_header = {'model':model,'header':header}
 
         with open(filename,'wb') as f_tr_model_and_header:
             pickle.dump(model_and_header,f_tr_model_and_header)
@@ -145,7 +160,7 @@ def main():
             #     print("Error: %d" % (i + 1))
             #out.write(data)
 
-
+    # print(model.class_count_, model.class_log_prior_,model.feature_count_[0],model.feature_count_[1])
     print("Checked %d reactions. %d reactions consist exception errors" % (i + 1, e))
     return 0
 

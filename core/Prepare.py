@@ -71,11 +71,17 @@ class Prepare(object):
 
     def bit_string(self,data,header,mode,type_of_bitstring):
         index_bit = []
-        if mode == 1:
-            self.__bit = []
-            self.__bit.clear()
+        # if mode == 1:
+        self.__bit = []
+        self.__bit.clear()
+        self.__y = []
+        self.__y.clear()
         quantity_a = 0
+        reac=0
         for reaction,react in data.items():
+            reac+=1
+            if reac%10 == 9:
+                print("fingerprint: ", reac+1)
             for role,atom in react.items():
                 if role == 'products':
                     pass
@@ -143,14 +149,15 @@ class Prepare(object):
                                                     else:
                                                         m = 0
                                                     self.__y.append(m)
-        self.__bit = np.array(self.__bit)
+        self.__bit = np.array(self.__bit,dtype=bool)
         np.set_printoptions(threshold=np.nan)
         bit_string_res = self.__bit
         if mode == 0:
-            y = np.array(self.__y)
+            y = np.array(self.__y,dtype=bool)
         else:
             y = self.__y
         quantity_a += 1
+        print(index_bit)
         return bit_string_res,y,index_bit,header,quantity_a
 
 
