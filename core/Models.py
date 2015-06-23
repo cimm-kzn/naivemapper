@@ -13,7 +13,10 @@ class Models(object):
         X = x
         Y = y
         model = BernoulliNB()
+        model.set_params(binarize=None)
         model.fit(X, Y)
+        print(model.get_params(deep=True))
+        print(model.score(X, Y))
         return model
 
 

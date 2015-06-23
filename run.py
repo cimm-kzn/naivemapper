@@ -40,7 +40,7 @@ def main():
     rawopts.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     rawopts.add_argument("--model", "-n", type=str, default="model", help="name of file with model")
     rawopts.add_argument("--predict", "-p", type=bool, default=1, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
-    rawopts.add_argument("--bitstring", "-b", type=int, default=1, help="type of united bitstring for atomic bitstrings A and B: 0 - A*B, 1- A+B+A*B")
+    rawopts.add_argument("--bitstring", "-b", type=int, default=2, help="type of united bitstring for atomic bitstrings A and B: 0 - A*B, 1- A+B+A*B, 2 - A!B + B!A + A*B")
     options = vars(rawopts.parse_args())
 
     inp = RDFread(options['input'])

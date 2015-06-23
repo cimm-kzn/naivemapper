@@ -102,7 +102,8 @@ class Prepare(object):
                                                     for i in range(len(com_frag)):
                                                         temp_bit_sp[com_frag[i]] = 1
                                                     temp_bit_all.extend(temp_bit_sp)
-                                                else:
+
+                                                elif type_of_bitstring == 1:
                                                     temp_bit_s = [0 for x in range(len(header))]
                                                     for i in range(len(list(frags1.keys()))):
                                                         temp_bit_s[list(frags1.keys())[i]] = 1
@@ -110,6 +111,23 @@ class Prepare(object):
                                                     temp_bit_p = [0 for x in range(len(header))]
                                                     for i in range(len(list(frags.keys()))):
                                                         temp_bit_p[list(frags.keys())[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_p)
+                                                    temp_bit_sp = [0 for x in range(len(header))]
+                                                    com_frag = list(set(frags).intersection(frags1))
+                                                    for i in range(len(com_frag)):
+                                                        temp_bit_sp[com_frag[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_sp)
+
+                                                else:
+                                                    temp_bit_s = [0 for x in range(len(header))]
+                                                    a_without_b = list(set(frags).difference(frags1))
+                                                    for i in range(len(a_without_b)):
+                                                        temp_bit_s[a_without_b[i]] = 1
+                                                    temp_bit_all.extend(temp_bit_s)
+                                                    temp_bit_p = [0 for x in range(len(header))]
+                                                    b_without_a = list(set(frags1).difference(frags))
+                                                    for i in range(len(b_without_a)):
+                                                        temp_bit_p[b_without_a[i]] = 1
                                                     temp_bit_all.extend(temp_bit_p)
                                                     temp_bit_sp = [0 for x in range(len(header))]
                                                     com_frag = list(set(frags).intersection(frags1))
