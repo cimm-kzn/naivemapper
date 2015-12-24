@@ -15,7 +15,7 @@ class Models(object):
         model.set_params(binarize=None)
         all_classes = np.array([1, 0])
         model.partial_fit(X, Y, classes=all_classes)
-        print(model)
+        #print(model)
         return model
 
 
@@ -54,7 +54,8 @@ class Models(object):
             indx[indexes[i][0]] = indexes[i][1]
         return indx
 
-
+    def cross_validation(self, data_list):
+        pass
 
 
 

@@ -43,8 +43,73 @@ def grouper(n, iterable):
            return
        yield dict(chunk)
 
+def train(new_data, collector, bitstring, Model, model, header):
+        i=0
+        for chunk in grouper(10,new_data.items()): #Eats reactions, generates fingerprints and creates model
+            i = i+ len(chunk)
+            print(i, "/", len(new_data), "reactions is in use for training")
+            bit,y,index_bit,header,quantity_a = collector.bit_string(chunk,header,0,bitstring)
+            # bit - array of numpy bitarray made according to the rules of bitstring unity
+            # print("bit", bit)
+            # y - numpy bitarray to show whether atom maps to each other
+            #print("y", y)
+            # index_bit - array which shows correspondences between atoms that were took into account in bit and y
+            # quantity_a - number of atoms in the last reaction
+            #print("index_bit",index_bit)
+            #print("quantity_a", quantity_a)
+            #print("header", header)
+            print('Modeling in progress... X size: ', len(index_bit))
+            model = Model.learning(bit,y,model)
+        return model, header
+
+def test_write(data, s_map, p_map, index_map, options):
+    ind=1
+    import copy
+    data=copy.deepcopy(data)
+    for role,dat in data.items():
+        if role == 'substrats':
+            for i,datum in enumerate(dat):
+                for list_type, dat_atom in datum.items():
+                    if list_type == 'atomlist':
+                        for j,properties in enumerate(dat_atom):
+                            for prop,count in properties.items():
+                                if prop == 'map':
+                                    data['substrats'][i]['atomlist'][j]['map'] = ind
+                                    l = s_map.index((i,j)) # получили положение кортежа в списке реагентов, соответствующее сквозному номеру атома реагента
+                                    k = index_map[l] # по сквозному номеру атома реагента находим атом продукта, которому он соответствует
+                                    m,n = p_map[k] # получаем номер молекулы и номер атома продукта в данной молекуле
+                                    data['products'][m]['atomlist'][n]['map'] = ind
+                                    ind += 1
+    return data
+
+def gen_tuple(maps_predict, maps_test):
+    for atom, map in maps_predict['substrats'].items():
+        #print(atom)
+        tuple_corr = maps_test['products'][maps_test['substrats'][atom]]
+        #print(tuple_corr)
+        tuple_pred = maps_predict['products'][map]
+        #print("pred:", tuple_pred, "test:", tuple_corr)
+        yield tuple_pred, tuple_corr
+
+def mapping(data_t_p):
+    #returns dictionary of maps in dataset 'substrats': (molecule, atom): atomMap; 'products': atomMap: (molecule, atom)
+    maps_t_p = {}
+    for reaction, data in data_t_p.items():
+        dict_temp = {}
+        dict_temp['substrats']={}
+        dict_temp['products'] ={}
+        for molecule in range(len(data['substrats'])):
+            for atom in range(len(data['substrats'][molecule]['atomlist'])):
+                dict_temp['substrats'][(molecule,atom)] = data['substrats'][molecule]['atomlist'][atom]['map']
+        for molecule in range(len(data['products'])):
+            for atom in range(len(data['products'][molecule]['atomlist'])):
+                dict_temp['products'][data['products'][molecule]['atomlist'][atom]['map']] = (molecule, atom)
+        maps_t_p[reaction] = dict_temp
+    return maps_t_p
+
+
 def main():
-    rawopts = argparse.ArgumentParser(description="Naive Reactions Automapper",
+    rawopts = argparse.ArgumentParser(description="Naive Bayes Reactions Automapper",
                                       epilog="Copyright 2015 Ramil Nugmanov <stsouko@live.ru>")
     rawopts.add_argument("--version", "-v", action="version", version=version(), default=False)
     rawopts.add_argument("--input", "-i", type=str, default='input.rdf', help="input RDF ")
@@ -52,10 +117,9 @@ def main():
     rawopts.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
     rawopts.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     rawopts.add_argument("--model", "-n", type=str, default="model", help="name of file with model")
-    rawopts.add_argument("--predict", "-p", type=bool, default=1, help="mode of the program: 0 - learning, 1 - prediction") # default=0 !!!
+    rawopts.add_argument("--predict", "-p", type=int, default=0, help="mode of the program: 0 - learning, 1 - prediction, 2 - cross_validation") # default=0 !!!
     rawopts.add_argument("--bitstring", "-b", type=int, default=2, help="type of united bitstring for atomic bitstrings A and B: 0 - A*B, 1- A+B+A*B, 2 - A!B + B!A + A*B")
     options = vars(rawopts.parse_args())
-
     inp = RDFread(options['input'])
     if not inp.chkRDF():
         print('rdf incorrect')
@@ -80,39 +144,36 @@ def main():
                         try:
                             res = fragger.get(data)
                             maps_dict = collector.good_map(data)
-                            new_data,header = collector.collect(res,header,atomfragcount,0)
-
+                            new_data,header = collector.collect(res,header,atomfragcount,0,i)
+                            # newdata is dictionary with atoms and its fragments, reacNo: role: atomNo: atomSymbol: frag: fragCount
+                            # header is dictionary of fragmentDescription (tuple): fragmentNo
                         except:
                             e += 1
                             print("Error: %d" % (i + 1))
+        #print("newdata", new_data)
+        print("Totally number of data for train:", len(new_data))
+        model, header = train(new_data, collector, bitstring, Model, model, header)
+        model_and_header = {'model':model,'header':header}
+        #print(y, index_bit)
 
-        for chunk in grouper(10,new_data.items()):
-            print('chunk = ',chunk)
-            bit,y,index_bit,header,quantity_a = collector.bit_string(chunk,header,0,bitstring)
-            print('Modeling in progress... X size: ', len(index_bit))
-            model = Model.learning(bit,y,model)
-        print(y, index_bit)
         filename = options['model']
-        folder = 'trained_models\\'
+        folder = 'trained_models/'
         filename_extension = '.pickle'
         filename = folder+filename+filename_extension
-
-
-        model_and_header = {'model':model,'header':header}
-
+        print(filename)
         with open(filename,'wb') as f_tr_model_and_header:
             pickle.dump(model_and_header,f_tr_model_and_header)
         f_tr_model_and_header.close()
 
 
-    else:
+    elif options['predict'] == 1:
         out = RDFwrite(options['output'])
         fragger = Fragger(**options)
         collector = Prepare()
         e = 0
 
         filename = options['model']
-        folder = 'trained_models\\'
+        folder = 'trained_models/'
         filename_extension = '.pickle'
         filename = folder+filename+filename_extension
 
@@ -123,45 +184,152 @@ def main():
         f_tr_model_and_header.close()
         header = model_and_header['header']
         model = model_and_header['model']
-
+        final_data = {}
         for i, data in enumerate(inp.readdata()):
-            if i % 100 == 0 and i:
+            if i % 10 == 0:
                 print("reaction: %d" % (i + 1))
             #res = calc.firstcgr(data)
 
             # try:
             res = fragger.get(data)
-            new_data,header = collector.collect(res,header,atomfragcount,1)
+            new_data,header = collector.collect(res,header,atomfragcount,1, i)
             bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1,bitstring)
             probabilities = Model.predict(model,bit)
             index_map = Model.mapping(index_bit,probabilities,quantity_a)
-            ind = 1
             s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
             p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
-
-            for role,dat in data.items():
-                if role == 'substrats':
-                    for i,datum in enumerate(dat):
-                        for list_type, dat_atom in datum.items():
-                            if list_type == 'atomlist':
-                                for j,properties in enumerate(dat_atom):
-                                    for prop,count in properties.items():
-                                        if prop == 'map':
-                                            data['substrats'][i]['atomlist'][j]['map'] = ind
-                                            l = s_map.index((i,j)) # получили положение кортежа в списке реагентов, соответствующее сквозному номеру атома реагента
-                                            k = index_map[l] # по сквозному номеру атома реагента находим атом продукта, которому он соответствует
-                                            m,n = p_map[k] # получаем номер молекулы и номер атома продукта в данной молекуле
-                                            data['products'][m]['atomlist'][n]['map'] = ind
-                                            ind += 1
+            #print("data", data)
+            data = test_write(data, s_map, p_map, index_map, options)
             out.write(data)
+            final_data[i] = data
+        #out.write(final_data)
+        print("final_data", final_data)
 
-            # except:
-            #     e += 1
-            #     print("Error: %d" % (i + 1))
-            #out.write(data)
+        #out.write(final_data)
+
+    elif options['predict'] == 2:
+
+        e = 0
+        #header = {}
+
+
+        N_folds = 5
+        data_all = {}
+
+        # parse files
+
+        for i, data in enumerate(inp.readdata()):
+            if i % 100 == 0 and i:
+                print("reaction: %d" % (i + 1))
+            data_all[i] = data
+
+        #generates folds
+
+        correct_mapping = 0
+        incorrect_mapping = 0
+        correct=[]
+        incorrect = []
+        for fold in range(N_folds):
+            bit = []
+            atomfragcount = {}
+            bitstring = options['bitstring']
+            header = {}
+            Model = Models()
+            model = BernoulliNB()
+            fragger = Fragger(**options)
+            collector = Prepare()
+
+            data_train = {}
+            data_test = {}
+            print("Fold", fold+1, "/", N_folds)
+            for i in range(len(data_all)):
+                if i % N_folds != fold:
+                    data_train[i] = data_all[i]
+                else:
+                    data_test[i] = data_all[i]
+
+            #training stage
+
+            print("Training set descriptor calculation")
+            for j, data in data_train.items():
+                try:
+                    res = fragger.get(data)
+                    maps_dict = collector.good_map(data, j)
+                    new_data, header = collector.collect(res, header, atomfragcount, 0, j)
+                    # newdata is dictionary with atoms and its fragments, reacNo: role: atomNo: atomSymbol: frag: fragCount
+                    # header is dictionary of fragmentDescription (tuple): fragmentNo
+                except:
+                    e += 1
+                    print("Error: %d" % (j + 1))
+
+            print(len(data_train), "reactions ready")
+
+            model, header = train(new_data, collector, bitstring, Model, model, header)
+            model_and_header = {'model':model,'header':header}
+
+            filename = options['model']
+            folder = 'trained_models/'
+            filename_extension = '.pickle'
+            filename = folder+filename+'_fold'+str(fold)+filename_extension
+            print("filename:", filename)
+            with open(filename,'wb') as f_tr_model_and_header:
+                pickle.dump(model_and_header,f_tr_model_and_header)
+            f_tr_model_and_header.close()
+
+            # prediction stage
+
+            print("Testing set descriptor calculation")
+            data_predicted = {}
+            filename_pred = "output_fold"+str(fold)+"pred.rdf"
+            filename_test = "output_fold"+str(fold)+"test.rdf"
+            print("filename_pred: ", filename_pred, "filename_test: ", filename_test)
+            out_pred = RDFwrite(filename_pred)
+            out_test = RDFwrite(filename_test)
+
+            for j, data in data_test.items():
+                try:
+                    res = fragger.get(data)
+                    new_data,header = collector.collect(res,header,atomfragcount,1, j)
+                    bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1,bitstring)
+                except:
+                    e += 1
+                    print("Error: %d" % (j + 1))
+
+                probabilities = Model.predict(model,bit)
+                index_map = Model.mapping(index_bit,probabilities,quantity_a)
+                s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
+                p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
+                # print("data", data)
+                out_test.write(data)
+                data = test_write(data, s_map, p_map, index_map, options)
+                out_pred.write(data)
+                data_predicted[j] = data
+            #print(len(data_predicted))
+
+            # comparison stage - valid for balanced reactions only
+
+            maps_predicted = mapping(data_predicted)
+            maps_test = mapping(data_test)
+            #print(maps_predicted)
+            for reaction in maps_predicted:
+                f = all(tuple_pred == tuple_corr for tuple_pred, tuple_corr in gen_tuple(maps_predicted[reaction], maps_test[reaction]))
+                if f == True:
+                    correct_mapping +=1
+                    correct.append(reaction)
+                else:
+                    incorrect_mapping +=1
+                    incorrect.append(reaction)
+
+            print('correct: ', correct_mapping, 'incorrect:', incorrect_mapping)
+            print('correct:', correct_mapping, 'incorrect:', incorrect_mapping)
+
+
 
     # print(model.class_count_, model.class_log_prior_,model.feature_count_[0],model.feature_count_[1])
     print("Checked %d reactions. %d reactions consist exception errors" % (i + 1, e))
+    print('correct:', correct_mapping, 'incorrect:', incorrect_mapping)
+    print('corr:', correct, 'incorr:', incorrect)
+    print("percent correct", 100*correct_mapping/(correct_mapping+incorrect_mapping))
     return 0
 
 
