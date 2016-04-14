@@ -27,6 +27,12 @@ from core.version import version
 from core.RDFwrite import RDFwrite
 from core.Prepare import Prepare
 from core.Models import Models
+'''
+from CGRtools.CGRcore import CGRcore
+from CGRtools.FEAR import FEAR
+from CGRtools.RDFread import RDFread
+from CGRtools.SDFwrite import SDFwrite
+'''
 
 import pickle
 
@@ -196,7 +202,9 @@ def main():
             bit,y,index_bit,header,quantity_a = collector.bit_string(new_data,header,1,bitstring)
             probabilities = Model.predict(model,bit)
             index_map = Model.mapping(index_bit,probabilities,quantity_a)
-            s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
+            s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))]
+            ''' порядковый номер соответствует номеру атома в index_map,
+            в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле'''
             p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
             #print("data", data)
             data = test_write(data, s_map, p_map, index_map, options)
@@ -208,10 +216,8 @@ def main():
         #out.write(final_data)
 
     elif options['predict'] == 2:
-
         e = 0
         #header = {}
-
 
         N_folds = 5
         data_all = {}
@@ -229,6 +235,7 @@ def main():
         incorrect_mapping = 0
         correct=[]
         incorrect = []
+        #data_predicted = {}
         for fold in range(N_folds):
             bit = []
             atomfragcount = {}
@@ -299,11 +306,13 @@ def main():
                 index_map = Model.mapping(index_bit,probabilities,quantity_a)
                 s_map = [(x,z) for x,y in enumerate(data['substrats']) for z in range(len(y['atomlist']))] # порядковый номер соответствует номеру атома в index_map, в кортеже первый номер соответствует номеру молекулы, второй - номеру атома в молекуле
                 p_map = [(x,z) for x,y in enumerate(data['products']) for z in range(len(y['atomlist']))]
-                # print("data", data)
+                #print("data", data)
                 out_test.write(data)
                 data = test_write(data, s_map, p_map, index_map, options)
                 out_pred.write(data)
                 data_predicted[j] = data
+                #print("j "+str(j)+", id "+data['meta']['CdId'])
+
             #print(len(data_predicted))
 
             # comparison stage - valid for balanced reactions only
@@ -321,8 +330,8 @@ def main():
                     incorrect.append(reaction)
 
             print('correct: ', correct_mapping, 'incorrect:', incorrect_mapping)
-            print('correct:', correct_mapping, 'incorrect:', incorrect_mapping)
-
+            print('correct:', correct, 'incorrect:', incorrect)
+            print("percent correct", 100*correct_mapping/(correct_mapping+incorrect_mapping))
 
 
     # print(model.class_count_, model.class_log_prior_,model.feature_count_[0],model.feature_count_[1])
