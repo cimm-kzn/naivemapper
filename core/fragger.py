@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
+# Copyright 2015, 2016 Ramil Nugmanov <stsouko@live.ru>
 # This file is part of naivemapper.
 #
 #  naivemapper is free software; you can redistribute it and/or modify
@@ -19,70 +19,41 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-from collections import defaultdict
+from itertools import tee
+import networkx as nx
+from typing import Dict, Tuple
+from collections import Counter
 
 
-def main():
-    print("This file is part of naivemapper.")
-    return 0
+def pairwise(iterable):
+    """s -> (s0,s1), (s1,s2), (s2, s3), ...
+    copypaste from off-doc
+    """
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 class Fragger(object):
-    def __init__(self, **kwargs):
-        self.__min = kwargs['min']
-        self.__max = kwargs['max']
+    def __init__(self, _min: int = 1, _max: int = 10):
+        self.__min = _min
+        self.__max = _max
 
-    def get(self, data):
-        '''
-        генерит матрицы продуктов и реагентов.
-        сортирует их и дополняет атомами приведенными только в продуктах или реагентах.
-        :param data:  словарь описывающий всю реакцию
-        :return:
-        '''
-        result = {'substrats': self.__dosearch(self.__getmatrix(data['substrats'])),
-                  'products': self.__dosearch(self.__getmatrix(data['products']))}
+    def get(self, data: nx.Graph) -> Dict[int, Dict[Tuple[Tuple], int]]:
+        """
+        создает словарь атомов и словарей фрагментов и их количеств.
+        """
 
-        return result
+        def path_namer(path):
+            # todo: path развернуть в фрагменты типа tuple(tuple(atom, prop1,...),tuple(bond, prop1,...), ...)
+            for x in path:
+                node_info = data.node[x]
+            for x, y in pairwise(path):
+                edge_info = data[x][y]
 
-    @staticmethod
-    def __getmatrix(data):
-        '''
-        объединение матриц связности группы молекул
-        '''
-        repl = []
-        connections = {}
+            name =
+            return name
 
-        for i in data:
-            lrepl = len(repl)
-            for x, y in enumerate(i['atomlist']):
-                key = (x + lrepl, y['element'], y['izotop'])
-                connections[key] = {}
-                repl.append(key)
+        paths = nx.all_pairs_shortest_path(data, cutoff=self.__max - 1)
 
-
-            for x in i['bondlist']:
-                connections[repl[x[0] + lrepl]][repl[x[1] + lrepl]] = connections[repl[x[1] + lrepl]][
-                    repl[x[0] + lrepl]] = x[2]
-        return connections
-
-    def __dosearch(self, connections):
-        self.__connections = connections
-        total = {}
-        for i in self.__connections:
-            self.__fragments = defaultdict(int)
-            self.__lcs([i], i)
-            total[i] = self.__fragments
-        return total
-
-    def __lcs(self, trace, inter):
-        iterlist = list(set(self.__connections[inter]) - set(trace))
-        if len(trace) // 2 + 1 < self.__max:
-            for i in iterlist:
-                self.__lcs(trace + [self.__connections[trace[-1]][i], i], i)
-        if len(trace) // 2 + 1 >= self.__min:  # or not iterlist and len(self.__connections[trace[0]]) < 2 and self.__small:
-            atoms = [tuple(x[1:]) for x in trace[::2]]
-            frag = [item for sublist in zip(atoms, trace[1::2]) for item in sublist] + atoms[-1:]
-            self.__fragments[tuple(frag)] += 1
-
-if __name__ == '__main__':
-    main()
+        return {x: dict(Counter(path_namer(z) for z in y.values())) for x, y in paths.items()}

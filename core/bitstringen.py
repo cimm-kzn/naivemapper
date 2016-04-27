@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015 Ramil Nugmanov <stsouko@live.ru>
+# Copyright 2016 Ramil Nugmanov <stsouko@live.ru>
 # This file is part of naivemapper.
 #
 #  naivemapper is free software; you can redistribute it and/or modify
@@ -21,14 +21,4 @@
 #
 
 
-def main():
-    print("This file is part of naivemapper.")
-    return 0
-
-
-def version():
-    return '0.0.1'
-
-
-if __name__ == '__main__':
-    main()
+# todo: next step
