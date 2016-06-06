@@ -43,17 +43,16 @@ class Fragger(object):
         """
         создает словарь атомов и словарей фрагментов и их количеств.
         """
-
         def path_namer(path):
-            # todo: path развернуть в фрагменты типа tuple(tuple(atom, prop1,...),tuple(bond, prop1,...), ...)
+            frag = []
             for x in path:
                 node_info = data.node[x]
+                frag.append((node_info['element'],node_info['s_charge']))
             for x, y in pairwise(path):
                 edge_info = data[x][y]
+                frag.append((edge_info['s_bond'],))
 
-            name =
-            return name
+            return tuple(frag)
 
         paths = nx.all_pairs_shortest_path(data, cutoff=self.__max - 1)
-
-        return {x: dict(Counter(path_namer(z) for z in y.values())) for x, y in paths.items()}
+        return {x: dict(Counter(path_namer(z) for z in y.values() if len(z) >= self.__min)) for x, y in paths.items()}
