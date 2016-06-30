@@ -47,12 +47,14 @@ class Fragger(object):
             frag = []
             for x in path:
                 node_info = data.node[x]
-                frag.append((node_info['element'],node_info['s_charge']))
+                #frag.append('#%s%s' % (node_info['element'],node_info['s_charge']))
+                # убрали заряды из-за того, что общие фрагменты единочной длины исчезали (например '#N0'!='#N3')
+                frag.append('#%s' % (node_info['element']))
             for x, y in pairwise(path):
                 edge_info = data[x][y]
-                frag.append((edge_info['s_bond'],))
+                frag.append(str(edge_info['s_bond']))
 
-            return tuple(frag)
+            return '.'.join(frag)
 
         paths = nx.all_pairs_shortest_path(data, cutoff=self.__max - 1)
         return {x: dict(Counter(path_namer(z) for z in y.values() if len(z) >= self.__min)) for x, y in paths.items()}

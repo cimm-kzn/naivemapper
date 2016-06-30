@@ -20,13 +20,10 @@
 #  MA 02110-1301, USA.
 #
 from collections import defaultdict
-from itertools import repeat
-
-import math
-
 from CGRtools.RDFread import RDFread
 from CGRtools.RDFwrite import RDFwrite
-from CGRtools.CGRreactor import CGRReactor
+from CGRtools.CGRcore import CGRcore
+from CGRtools.FEAR import FEAR
 from core.fragger import Fragger
 from core.bitstringen import Bitstringen
 from core.wedding import Wedding
@@ -47,7 +44,7 @@ def mapper_core(**kwargs):
     c = 0
     fragger = Fragger(kwargs['min'], kwargs['max'])
     bitstring = Bitstringen(kwargs['bitstring'], kwargs['b_length'])
-    wedding = Wedding(kwargs['pairs'])
+    wedding = Wedding(kwargs['pairs'], kwargs['duplicate'])
 
     if kwargs['stage'] == 2:
         for _ in RDFread(open(kwargs['input'])).readdata():
@@ -60,29 +57,7 @@ def mapper_core(**kwargs):
             nb = pickle.load(train)
     else:
         # если стадия обучения, то создаем новую модель
-        nb = BernoulliNB(alpha=1, binarize=None)
-
-    def getXY(reaction):
-        sub_graph = nx.union_all(reaction['substrats'])
-        prod_graph = nx.union_all(reaction['products'])
-        sub_frag = fragger.get(sub_graph)  # Словарь фрагментов от данного атома реагента
-        prod_frag = fragger.get(prod_graph)  # Словарь фрагментов от данного атома продукта
-        pairs, y_bit = wedding.get(sub_graph, prod_graph)  # Генерирует номера соотвествующих пар(атома_реагента,атома_продукта)
-        x_bit = bitstring.get(sub_frag, prod_frag, pairs)  # Создают битовую строку для пары атомов реагента и продукта
-        return x_bit, y_bit, pairs
-
-    def mapping(pairs, y):
-        tmp = defaultdict(dict)  # создается кв.матрица (кол-во_атомов_sub)Х(кол-во_атомов_prod)
-        for (s_atom, p_atom), proba in zip(pairs, y):
-            tmp[s_atom][p_atom] = -proba[1]  # если данная пара атомов не сгенерирована ранее в pairs то значение None
-        prob_matrix = pd.DataFrame(tmp)
-        indexes = _hungarian(prob_matrix.fillna(np.inf))
-        p_reindex = prob_matrix.index.tolist()
-        s_reindex = prob_matrix.columns.values.tolist()
-        # Вычислить решение Манкрес проблемы классического назначения и возвращать индексы для спариваний
-        # наименьшей стоимости. Возвращает 2D массив индексов
-        _map = {p_reindex[x]: s_reindex[y] for x, y in indexes}  # mapping on products
-        return _map
+        nb = BernoulliNB(alpha=1.0, binarize=None)
 
     def worker(file):  # для души. увидим ошибки в RDF
         err = 0
@@ -98,46 +73,105 @@ def mapper_core(**kwargs):
 
         print('%d from %d reactions processed' % (num - err, num), file=sys.stderr)
 
+    def getXY(reaction):
+        sub_graph = nx.union_all(reaction['substrats'])
+        prod_graph = nx.union_all(reaction['products'])
+        sub_frag = fragger.get(sub_graph)  # Словарь фрагментов от данного атома реагента
+        prod_frag = fragger.get(prod_graph)  # Словарь фрагментов от данного атома продукта
+        pairs, y_bit = wedding.get(sub_graph, prod_graph)  # Генерирует номера соотвествующих пар(а_реагента,а_продукта)
+        x_bit = bitstring.get(sub_frag, prod_frag, pairs)  # Создают битовую строку для пары атомов реагента и продукта
+
+        return x_bit, y_bit, pairs
+
+    def mapping(pairs, y):
+        tmp = defaultdict(dict)  # создается кв.матрица (кол-во_атомов_sub)Х(кол-во_атомов_prod)
+        for (s_atom, p_atom), proba in zip(pairs, y):
+            tmp[s_atom][p_atom] = - proba[1]  # если данная пара атомов не сгенерирована ранее в pairs то значение None
+        prob_matrix = pd.DataFrame(tmp)
+        indexes = _hungarian(prob_matrix.fillna(np.inf))
+        p_reindex = prob_matrix.index.tolist()
+        s_reindex = prob_matrix.columns.values.tolist()
+        # Вычислить решение Манкрес проблемы классического назначения и возвращать индексы для спариваний
+        # наименьшей стоимости. Возвращает 2D массив индексов
+        _map = {p_reindex[x]: s_reindex[y] for x, y in indexes}  # mapping on products
+        return _map
+
+    def truth(f_test, f_pred):  # Проверка соответствия
+        CGR = CGRcore(type='0', stereo=False, b_templates=None, balance=0, c_rules= None, e_rules=None)
+        fear = FEAR()
+        with open(f_pred) as predfile, open(f_test) as testfile:
+            ok = 0
+            nok = 0
+            er = []
+            for i, (pred, test) in enumerate(zip(RDFread(predfile).readdata(), RDFread(testfile).readdata()), start=1):
+                predCGR = CGR.getCGR(pred)
+                testCGR = CGR.getCGR(test)
+                predHash = fear.getreactionhash(predCGR)
+                testHash = fear.getreactionhash(testCGR)
+                if predHash == testHash:
+                    ok += 1
+                else:
+                    nok += 1
+                    er.append(i)
+            print("O'k: " + str(ok*100/(ok + nok)) + "%, \nNot O'k: " + str(nok*100/(ok + nok)) + "%")
+            if kwargs['debug']:
+                print(er)
+
     if kwargs['stage'] == 1:
+        print("Testing set descriptor calculation")
         with open(kwargs['input']) as fr, open(kwargs['output'], 'w') as fw:  # Открываю входящий и исходящие файлы
             outputdata = RDFwrite(fw)
             for reaction in worker(RDFread(fr)):  # берем по 1 реакции из входящего файла
-                x, _, pairs = getXY(reaction)  # генерирум битовую строку
-                y = nb.predict_log_proba(x)  # на основании модели из данной битовой строки получаем строку У[True/False]
+                x, _, pairs = getXY(reaction)  # генерирум битовую строку и пары соответствующих атомов
+                y = nb.predict_log_proba(x)  # на основании модели из данной битовой строки получаем Y[True/False]
                 _map = mapping(pairs, y)
                 tmp = []
                 for graph in reaction['products']:
                     tmp.append(nx.relabel_nodes(graph, _map, copy=True))
                 reaction['products'] = tmp
                 outputdata.writedata(reaction)
+        truth(kwargs['input'], kwargs['output'])
 
     elif kwargs['stage'] == 2:
         indexes = list(range(c))  # генерации в список номеров(индексов) реакций
-        shuffle(indexes)  # перемешиваем индексы реакций
+        folds = kwargs['folds']
+        repeat = kwargs['repeat']
 
-        for x in range(5):  # генерация фолдов(блоков) кросс-валидации
-            test = indexes[x::5]  # для предсказания выбираются каждая пятая реакция (из перемешенного типа)
-            with open(kwargs['input']) as fr, open('mapping.tmp', 'w') as fw:  # Открываю файлы входящий и для маппинга
+        for r in range(repeat):
+            print('Repeat ', r+1, '/', repeat)
+            shuffle(indexes)  # перемешиваем индексы реакций
+
+            print("Training set descriptor calculation")
+            with open('cross_v/mapping'+str(r)+'.rdf', 'w') as fw:
                 test_file = RDFwrite(fw)
-                for num, reaction in enumerate(worker(RDFread(fr))):
-                    if num in test:  # если номер реакции во входящем файле совпал с номером тестового набора
-                        test_file.writedata(reaction)  # мы записываем реакцию в файл для маппинга
-                    else:  # если номер реакции во входящем файле НЕ совпал с номером тестового набора
-                        x, y, pairs = getXY(reaction)  # генерируем битовые строки Х и строку У
-                        nb.partial_fit(x, y, classes=pd.Series([0, 1]))  # обучаем нашу модель на основании x-bit и y-bit
+                for x in range(folds):  # генерация фолдов(блоков) кросс-валидации
+                    print('Fold ', x+1, '/', folds)
+                    test = indexes[x::folds]  # для предсказания выбираются каждая пятая реакция (из перемешенного типа)
+                    with open(kwargs['input']) as fr:
+                        for num, reaction in enumerate(worker(RDFread(fr))):
+                            if num in test:  # если номер реакции во входящем файле совпал с номером тестового набора
+                                test_file.writedata(reaction)  # мы записываем реакцию в файл для маппинга
+                            else:  # если номер реакции во входящем файле НЕ совпал с номером тестового набора
+                                x, y, pairs = getXY(reaction)  # генерируем битовые строки Х и строку У
+                                nb.partial_fit(x, y, classes=pd.Series([False, True]))  #Обучаем нашу модель на основании x-bit и y-bit
 
-        with open('mapping.tmp') as fr, open(kwargs['output'], 'w') as fw:  # Открываем файлы для маппинга и исходящий
-            outputdata = RDFwrite(fw)
-            for reaction in worker(RDFread(fr)):
-                x, _, pairs = getXY(reaction)  # генерирум битовую строку
-                y = nb.predict_log_proba(x)  #на основании модели из данной битовой строки получаем строку У[True/False]
-                _map = mapping(pairs, y)
-                tmp = []
-                for graph in reaction['products']:
-                    tmp.append(nx.relabel_nodes(graph, _map, copy=True))
-                reaction['products'] = tmp
-                outputdata.writedata(reaction)
+            print("Testing set descriptor calculation")
+            with open('cross_v/mapping'+str(r)+'.rdf') as fr, open('cross_v/output'+str(r)+'.rdf', 'w') as fw:
+                outputdata = RDFwrite(fw)
+                for reaction in worker(RDFread(fr)):
+                    x, _, pairs = getXY(reaction)  # генерирум битовую строку
+                    y = nb.predict_log_proba(x)  # на основании модели из данной битовой строки получаем строку Y[T/F]
+                    _map = mapping(pairs, y)
+                    tmp = []
+                    for graph in reaction['products']:
+                        tmp.append(nx.relabel_nodes(graph, _map, copy=True))
+                        # на основании обученной модели перемаппливаются атомы продукта
+                    reaction['products'] = tmp
+                    outputdata.writedata(reaction)
+            truth('cross_v/mapping'+str(r)+'.rdf', 'cross_v/output'+str(r)+'.rdf')  # проверка предсказанных данных
+
     else:
+        print("Training set descriptor calculation")
         with open(kwargs['input']) as fr:
             for reaction in worker(RDFread(fr)):
                 x, y, _ = getXY(reaction)  # для каждой реакции генерируем битовые строки Х и строку У
@@ -157,11 +191,17 @@ def parse_args():
     parser.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
     parser.add_argument("--bitstring", "-b", type=int, default=2,
                         help="type of united bitstring for atomic bitstrings A and B: 0-A*B, 1-A+B+A*B, 2-A!B+B!A+A*B")
-    parser.add_argument("--b_length", "-l", type=int, default=1024, help="lenght of bitstrings")
+    parser.add_argument("--b_length", "-l", type=int, default=2048, help="lenght of bitstrings")
     parser.add_argument("--pairs", "-p", type=int, default=0,
-                        help="type of united respective pairs: 0-dumb, 1-isomorphic")
+                        help="type of united respective pairs: 0-dumb, 1-equivalent")
+    parser.add_argument("--duplicate", "-d", type=int, default=1,
+                        help="type of united respective pairs: 0-does duplicate, 1-has a duplicate")
     parser.add_argument("--stage", "-s", type=int, default=2,
                         help="type of stage of the process: 0 - learning, 1 - prediction, 2 - cross_validation")
+    parser.add_argument("--folds", "-N", type=int, default=5,
+                        help="the number of partitions of the data: sets to training and test")
+    parser.add_argument("--repeat", "-r", type=int, default=2,
+                        help="the number of repetitions of the cross-validation procedure")
     parser.add_argument("--debug", action='store_true', help="debug mod")
     return parser
 
