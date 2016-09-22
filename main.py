@@ -27,6 +27,8 @@ from CGRtools.FEAR import FEAR
 from core.fragger import Fragger
 from core.bitstringen import Bitstringen
 from core.wedding import Wedding
+from core.Morgan import Morgan
+from core.DFS import DFS
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.utils.tests.test_linear_assignment import _hungarian
 from random import shuffle
@@ -44,19 +46,23 @@ def mapper_core(**kwargs):
     c = 0
     fragger = Fragger(kwargs['min'], kwargs['max'])
     bitstring = Bitstringen(kwargs['bitstring'], kwargs['b_length'])
-    wedding = Wedding(kwargs['pairs'], kwargs['duplicate'])
+    dfs = DFS()
+    #morgan = Morgan()
+    #wedding = Wedding(kwargs['pairs'], kwargs['duplicate'])
 
     if kwargs['stage'] == 2:
+        # подсчитаем кол-во реакций, чтоб в дальнейшем разбить их на части(N-1/N обучение и 1/N предсказание)
         for _ in RDFread(open(kwargs['input'])).readdata():
             c += 1
-            # подсчитаем кол-во реакций, чтоб в дальнейшем разбить их на части(4/5 обучение и 1/5 предсказание)
 
     if kwargs['stage'] == 1:
-        # если стадия предсказания, то загружаем уже существующую модель в Наивный Бейсовский классификатор
+        # если стадия предсказания, то применяем алгоритма Моргана для генерации пар эквивалентных атомов
+        # и загружаем уже существующую модель в Наивный Бейсовский классификатор
         with open(kwargs['model'], 'rb') as train:
             nb = pickle.load(train)
     else:
-        # если стадия обучения, то создаем новую модель
+        # если стадия обучения, то не используем алгоритм Моргана для генерации пар эквивалентных атомов
+        # и создаем новую модель
         nb = BernoulliNB(alpha=1.0, binarize=None)
 
     def worker(file):  # для души. увидим ошибки в RDF
@@ -83,17 +89,21 @@ def mapper_core(**kwargs):
 
         return x_bit, y_bit, pairs
 
-    def mapping(pairs, y):
+    def mapping(pairs, y, prod_graph, sub_graph):
         tmp = defaultdict(dict)  # создается кв.матрица (кол-во_атомов_sub)Х(кол-во_атомов_prod)
         for (s_atom, p_atom), proba in zip(pairs, y):
             tmp[s_atom][p_atom] = - proba[1]  # если данная пара атомов не сгенерирована ранее в pairs то значение None
-        prob_matrix = pd.DataFrame(tmp)
-        indexes = _hungarian(prob_matrix.fillna(np.inf))
-        p_reindex = prob_matrix.index.tolist()
-        s_reindex = prob_matrix.columns.values.tolist()
+        prob_matrix = pd.DataFrame(tmp).fillna(np.inf)
+        indexes = _hungarian(prob_matrix)
         # Вычислить решение Манкрес проблемы классического назначения и возвращать индексы для спариваний
         # наименьшей стоимости. Возвращает 2D массив индексов
-        _map = {p_reindex[x]: s_reindex[y] for x, y in indexes}  # mapping on products
+
+        p_reindex = prob_matrix.index.tolist()
+        s_reindex = prob_matrix.columns.values.tolist()
+
+        #_map = {s_reindex[s]: p_reindex[p] for p, s in indexes}  # mapping on substrats
+        _map = dfs.getMap(sub_graph, prod_graph, {p_reindex[p]: s_reindex[s] for p, s in indexes},
+                          prob_matrix, kwargs['way'])
         return _map
 
     def truth(f_test, f_pred):  # Проверка соответствия
@@ -118,13 +128,17 @@ def mapper_core(**kwargs):
                 print(er)
 
     if kwargs['stage'] == 1:
+        wedding = Wedding(0, 0)
         print("Testing set descriptor calculation")
         with open(kwargs['input']) as fr, open(kwargs['output'], 'w') as fw:  # Открываю входящий и исходящие файлы
             outputdata = RDFwrite(fw)
             for reaction in worker(RDFread(fr)):  # берем по 1 реакции из входящего файла
                 x, _, pairs = getXY(reaction)  # генерирум битовую строку и пары соответствующих атомов
-                y = nb.predict_log_proba(x)  # на основании модели из данной битовой строки получаем Y[True/False]
-                _map = mapping(pairs, y)
+                y = nb.predict_log_proba(x)
+                """на основании модели из данной битовой строки получаем лагорифмы вероятностей
+                проецирования/не проецирования пар атомов друг на друга"""
+                #_map = mapping(pairs, y)
+                _map = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
                 tmp = []
                 for graph in reaction['products']:
                     tmp.append(nx.relabel_nodes(graph, _map, copy=True))
@@ -142,6 +156,7 @@ def mapper_core(**kwargs):
             shuffle(indexes)  # перемешиваем индексы реакций
 
             print("Training set descriptor calculation")
+            wedding = Wedding(kwargs['pairs'], kwargs['duplicate'])
             with open('cross_v/mapping'+str(r)+'.rdf', 'w') as fw:
                 test_file = RDFwrite(fw)
                 for x in range(folds):  # генерация фолдов(блоков) кросс-валидации
@@ -156,12 +171,14 @@ def mapper_core(**kwargs):
                                 nb.partial_fit(x, y, classes=pd.Series([False, True]))  #Обучаем нашу модель на основании x-bit и y-bit
 
             print("Testing set descriptor calculation")
+            wedding = Wedding(0, 0)
             with open('cross_v/mapping'+str(r)+'.rdf') as fr, open('cross_v/output'+str(r)+'.rdf', 'w') as fw:
                 outputdata = RDFwrite(fw)
                 for reaction in worker(RDFread(fr)):
                     x, _, pairs = getXY(reaction)  # генерирум битовую строку
                     y = nb.predict_log_proba(x)  # на основании модели из данной битовой строки получаем строку Y[T/F]
-                    _map = mapping(pairs, y)
+                    #_map = mapping(pairs, y)
+                    _map = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
                     tmp = []
                     for graph in reaction['products']:
                         tmp.append(nx.relabel_nodes(graph, _map, copy=True))
@@ -172,6 +189,7 @@ def mapper_core(**kwargs):
 
     else:
         print("Training set descriptor calculation")
+        wedding = Wedding(kwargs['pairs'], kwargs['duplicate'])
         with open(kwargs['input']) as fr:
             for reaction in worker(RDFread(fr)):
                 x, y, _ = getXY(reaction)  # для каждой реакции генерируем битовые строки Х и строку У
@@ -188,14 +206,16 @@ def parse_args():
     parser.add_argument("--output", "-o", default="output.rdf", type=str, help="RDF outputfile")
     parser.add_argument("--model", "-n", default="model.dat", type=str, help="Model file")
     parser.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
-    parser.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
+    parser.add_argument("--max", "-M", type=int, default=9, help="maximal fragments length")
     parser.add_argument("--bitstring", "-b", type=int, default=2,
                         help="type of united bitstring for atomic bitstrings A and B: 0-A*B, 1-A+B+A*B, 2-A!B+B!A+A*B")
     parser.add_argument("--b_length", "-l", type=int, default=2048, help="lenght of bitstrings")
     parser.add_argument("--pairs", "-p", type=int, default=0,
                         help="type of united respective pairs: 0-dumb, 1-equivalent")
-    parser.add_argument("--duplicate", "-d", type=int, default=1,
-                        help="type of united respective pairs: 0-does duplicate, 1-has a duplicate")
+    parser.add_argument("--duplicate", "-d", type=int, default=0,
+                        help="duplicate availability:0-does all duplicate,1-has all duplicate,2-does 'False' duplicate")
+    parser.add_argument("--way", "-w", type=int, default=0,
+                        help="Ways of solving task assignment:0-the matrix of probabilities, 1-Morgan algorithm using")
     parser.add_argument("--stage", "-s", type=int, default=2,
                         help="type of stage of the process: 0 - learning, 1 - prediction, 2 - cross_validation")
     parser.add_argument("--folds", "-N", type=int, default=5,
