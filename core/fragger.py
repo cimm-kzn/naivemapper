@@ -19,10 +19,11 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-from itertools import tee
-import networkx as nx
-from typing import Dict, Tuple
 from collections import Counter
+from CGRtools.FEAR import FEAR
+from itertools import tee
+from typing import Dict, Tuple
+import networkx as nx
 
 
 def pairwise(iterable):
@@ -35,13 +36,18 @@ def pairwise(iterable):
 
 
 class Fragger(object):
-    def __init__(self, _min: int = 1, _max: int = 10):
+    def __init__(self, _min: int = 1, _max: int = 10, f_type=0):
         self.__min = _min
         self.__max = _max
+        self.__fear = FEAR(deep=3)
+        self.__fragment = self.__sequences if f_type == 0 else self.__augmented
 
     def get(self, data: nx.Graph) -> Dict[int, Dict[Tuple[Tuple], int]]:
+        return self.__fragment(data)
+
+    def __sequences(self, data):
         """
-        создает словарь атомов и словарей фрагментов и их количеств.
+        создает словарь атомов и словарей фрагментов (цепочки атомов и связей) и их количеств.
         """
         def path_namer(path):
             frag = []
@@ -58,3 +64,11 @@ class Fragger(object):
 
         paths = nx.all_pairs_shortest_path(data, cutoff=self.__max - 1)
         return {x: dict(Counter(path_namer(z) for z in y.values() if len(z) >= self.__min)) for x, y in paths.items()}
+
+    def __augmented(self, data):
+        """
+        создает словарь атомов и словарей фрагментов (атомы с окружением/augmented atoms).
+        """
+        return {x: dict.fromkeys({'%d^%s' % (n, self.__fear.get_cgr_string(y))
+                                  for n, y in enumerate(self.__fear.get_environment(data, [x], dante=True))}, 1)
+                for x in data.nodes()}

@@ -23,7 +23,7 @@ def eratosthenes():
                 x += p
             D[x] = p
 
-class getMorgan():
+class Morgan():
     def __init__(self, isotop=False, stereo=False, element=True):
         self.__primes = tuple(x for _, x in zip(range(1000), eratosthenes()))
         self.__isotop = isotop
@@ -47,18 +47,18 @@ class getMorgan():
                               for eattr in g[n].values()), 1) if self.__stereo else 1)
                   for n, attr in g.nodes(data=True)}
 
-        weights = {x: (newlevels.get(y) or newlevels.setdefault(y, next(countprime)))
+        weights = {x: newlevels.get(y) or newlevels.setdefault(y, next(countprime))
                    for x, y in sorted(params.items(), key=operator.itemgetter(1))}
 
-        oldnumb = numb = len(g)
-        maxcount = 0
+        numb = len(set(weights.values()))
         stab = 0
 
         scaf = {}
         for n, m in g.edge.items():
             scaf[n] = tuple(m)
 
-        while oldnumb >= numb and maxcount != 1 and stab < 3:
+        #while numb > oldnumb or numb <= oldnumb and (stab == 1 if maxcount == 1 else stab <= 3):
+        while True:
             oldnumb = numb
             neweights = {}
             countprime = iter(self.__primes)
@@ -69,16 +69,21 @@ class getMorgan():
                 """
                 tmp[n] = reduce(operator.mul, (weights[x] for x in m), weights[n]**2)
 
-            numb = len(set(tmp.values()))
-            if numb == oldnumb:
-                x = Counter(tmp.values())
-                stab += 1
-                maxcount = x[max(x)]
-            else:
-                stab = 0
-                maxcount = 0
-
             weights = {x: (neweights.get(y) or neweights.setdefault(y, next(countprime)))
                        for x, y in sorted(tmp.items(), key=operator.itemgetter(1))}
+
+            numb = len(set(weights.values()))
+            if numb == oldnumb:
+                x = Counter(weights.values())
+                if x[max(x)] > 1:
+                    if stab == 3:
+                        break
+                elif stab >= 2:
+                    break
+
+                stab += 1
+
+            elif stab:
+                stab = 0
 
         return weights
