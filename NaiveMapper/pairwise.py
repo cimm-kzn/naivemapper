@@ -1,7 +1,6 @@
 from typing import Tuple, Iterable
 from itertools import product
 from CGRtools.strings import get_morgan
-# from CGRtools.FEAR import FEAR  # from core.Morgan import Morgan
 import networkx as nx
 import pandas as pd
 import copy
@@ -21,7 +20,8 @@ class Pairwise(object):
         """
         return self.__pairs_type(sub_graph, prod_graph)
 
-    def simple(self, sub_graph, prod_graph):
+    @staticmethod
+    def simple(sub_graph, prod_graph):
         pairs = []
         state = []
         for (s_atom, s_prop), (p_atom, p_prop) in product(sub_graph.nodes(data=True), prod_graph.nodes(data=True)):
@@ -51,14 +51,16 @@ class Pairwise(object):
 
         return self.__duplicate_type(grup, c, s_grup, p_grup)
 
-    def __does(self, grup, c, s_grup, p_grup):
+    @staticmethod
+    def __does(grup, c, s_grup, p_grup):
         pairs = []
         for i in grup:
             pairs.append((s_grup[i[0]][0], p_grup[i[1]][0]))
 
         return pairs, pd.Series(c)
 
-    def __doesFalse(self, grup, c, s_grup, p_grup):
+    @staticmethod
+    def __doesFalse(grup, c, s_grup, p_grup):
         y = []
         pairs = []
         for j, i in enumerate(grup):
@@ -73,7 +75,8 @@ class Pairwise(object):
 
         return pairs, pd.Series(y)
 
-    def __has(self, grup, c, s_grup, p_grup):
+    @staticmethod
+    def __has(grup, c, s_grup, p_grup):
         y = []
         pairs = []
         for j, i in enumerate(grup):

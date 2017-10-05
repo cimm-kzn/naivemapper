@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.utils.tests.test_linear_assignment import _hungarian
 
+
 class Models(object):
     def __init__(self):
         pass

@@ -1,6 +1,7 @@
 import math as m
 import numpy as np
 
+
 class Stochastic(object):
     def __init__(self, err=1E-08):
         self.__er = err
