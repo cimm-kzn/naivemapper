@@ -29,6 +29,7 @@ class Bitstringen(object):
     def __init__(self, b_type=0, b_length=1024, f_type=0):
         self.__combiner = self.combo1 if b_type == 1 else self.combo2 if b_type == 2 else self.combo3 if b_type == 3 \
             else self.combo4 if b_type == 4 else self.combo5 if b_type == 5 else self.combo0
+        self.__b_type = b_type
         self.__length = b_length
         self.__type = f_type
 
@@ -49,9 +50,11 @@ class Bitstringen(object):
                 p_set = p_cache[p_atom] if p_atom in p_cache else p_cache.setdefault(p_atom, products[p_atom].keys())
             else:  # Перечисление фрагментов конкатенируется с его названием
                 s_set = s_cache[s_atom] if s_atom in s_cache \
-                    else s_cache.setdefault(s_atom, set([str(j) + k for k, v in substrats[s_atom].items() for j in range(1, v+1)]))
+                    else s_cache.setdefault(s_atom, set([str(j) + k for k, v in substrats[s_atom].items()
+                                                         for j in range(1, v+1)]))
                 p_set = p_cache[p_atom] if p_atom in p_cache \
-                    else p_cache.setdefault(p_atom, set([str(j1) + k1 for k1, v1 in products[p_atom].items() for j1 in range(1, v1+1)]))
+                    else p_cache.setdefault(p_atom, set([str(j1) + k1 for k1, v1 in products[p_atom].items()
+                                                         for j1 in range(1, v1+1)]))
             combos.append(self.__combiner(s_set, p_set))
 
         return pd.DataFrame(combos)
@@ -67,7 +70,7 @@ class Bitstringen(object):
             hs = int(hashlib.md5(k.encode()).hexdigest(), 16)
             bitstring[hs % self.__length] = 1
             bitstring[hs // self.__length % self.__length] = 1
-
+            # l = bitstring[bitstring.isin([1])].index.tolist()
         return bitstring > 0
 
     def combo0(self, s_set, p_set) -> pd.Series:

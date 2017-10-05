@@ -1,24 +1,33 @@
 from collections import defaultdict
 from itertools import chain
-from CGRtools.FEAR import FEAR  # from core.Morgan import Morgan
+from CGRtools.strings import get_morgan
+# from CGRtools.preparer import CGRcombo
+# from CGRtools.FEAR import FEAR  # from core.Morgan import Morgan
+
+
+def equivalent(morgan_dict):
+    """ словарь, ключем которого является нода атома, а занчение его вес(по алгоритму Моргана)
+    превратить в словарь: ключ - нода атома, значение - список атомов с одинаковым весом(симметрично-эквивалентные)
+    """
+    tmp = defaultdict(list)
+    for k, v in morgan_dict.items():
+        tmp[v].append(k)
+        # словарь: ключ - вес, значение - список атомов с одинаковым весом(симметрично-эквивалентные)
+    return {y: x for x in tmp.values() for y in x}
+
 
 class DFS(object):
-    def __init__(self):
-        self.__fear = FEAR()
-
-    def getMap(self, s_graph, p_graph, _map):
+    def getMap(self, s_graph, p_graph, _map, matrix):
+        '''
+        s_grup = equivalent(self.__fear.get_morgan(s_graph))
+        # {атом_реагента: [атомы_реагента, сим.\экв. с рассмтриваемым по Моргану)]}
+        twins = {x: m.loc[lambda m_row: abs(m_row - c) < .0000001].index.tolist()
+                 for x, m, c in ((x, matrix[x], matrix.loc[y, x]) for y, x in _map.items())}
+        # {атом_реагента:[атомы_продукта, на который может отобразиться данный атом реагента (по значениям Likelihood)]}
+        '''
         new_map = {}
-        """
-        Создание словаря, где ключом является атом реагента, а значением список атомов в продукте,
-        на который может отобразиться данный атом реагента
-        """
-        p_morgan = self.__fear.get_morgan(p_graph)
-        # словарь, ключем которого является нода атом продукта, а занчение его вес(по алгоритму Моргана)
-        tmp = defaultdict(list)
-        for k, v in p_morgan.items():
-            tmp[v].append(k)
-            # словарь: ключ - вес, значение - список атомов с одинаковым весом(симметрично-эквивалентные)
-        twins = {_map[y]: x for x in tmp.values() for y in x}
+        p_grup = {_map[y]: x for y, x in equivalent(get_morgan(p_graph)).items()}
+        # {атом_реагента: [атомы_продукта, на который может отобразиться данный атом реагента (по Моргану)]}
 
 
         def morphius(atoms, drug):
@@ -33,7 +42,6 @@ class DFS(object):
                     for i in range(1, len(pp)):
                         pp[0].intersection_update(pp[i])
                 pp_neigh = pp[0]
-                #pp_neigh = p_graph.neighbors(new_map[atom])
             except:
                 pp_neigh = []
 
@@ -44,9 +52,12 @@ class DFS(object):
                 print('Error')
 
         def walk(trace, inter):
-            t = twins[inter]  # Для рассматриваемого атома реагента, находим список сим/экв атомов в продуктах
-            p_map = t[0] if len(t) == 1 else morphius([x for x in s_graph.neighbors(inter) if x in new_map], sorted(t))
-            # Если список состоит из одного значения, то выбираем его, иначе проводим доп.проверку
+            t1 = p_grup[inter]
+            # t2 = s_grup[inter]
+            # Для рассматриваемого атома реагента, находим список сим/экв атомов в продуктах и реагентах
+            p_map = morphius([x for x in s_graph.neighbors(inter) if x in new_map], sorted(t1))
+            #                 sorted(twins[inter]) if len(t1) == 1 and len(t2) != 1 else sorted(t1))
+            # Если нет сим/экв атомов в продуктах, но они имеются в реагенте, то рассматриваем атомы с равным Likelihood
             new_map[inter] = p_map  # Новый мап - реагент:продукт
             iterlist = sorted(set(s_graph.neighbors(inter)).difference(trace))
             # Сортируем значения вершин графа субстрата, которые не входили в список ранее рассмотренных атомов
