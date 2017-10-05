@@ -6,62 +6,83 @@ from .main_train import train_core
 from ..version import version
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="", epilog="", prog='naivemapper')
-    parser.add_argument("--version", "-v", action="version", version="0.1", default=False)
-    parser.add_argument("--input", "-i", default="input.rdf", type=str, help="RDF inputfile")
-    parser.add_argument("--output", "-o", default="output.rdf", type=str, help="RDF outputfile")
-    parser.add_argument("--output_rank", "-o2", default="rank/out_rank.txt", type=str,
-                        help="the .txt-file with probability and mapping values ")
-    parser.add_argument("--model", "-n", default="model.dat", type=str, help="Model file")
-    parser.add_argument("--stage", "-s", type=int, default=2,
-                        help="type of stage of the process: 0-learning, 1-prediction, 2-cross_validation")
-    parser.add_argument("--f_type", "-ft", type=int, default=0, help="Method of fragmentation of a molecule")
-    parser.add_argument("--min", "-m", type=int, default=1, help="minimal fragments length")
-    parser.add_argument("--max", "-M", type=int, default=8, help="maximal fragments length")
-    parser.add_argument("--deep", "-deep", type=int, default=3, help="maximal augmented-fragments length")
-    parser.add_argument("--f_count", "-fc", type=int, default=0,
-                        help="The way of accounting information on the number of fragments of each type in the set")
-    parser.add_argument("--pairs", "-p", type=int, default=1,
-                        help="type of united respective pairs: 0 - simple, 1 - equivalent")
-    parser.add_argument("--duplicate", "-d", type=int, default=0,
-                        help="duplicate availability:0-does all duplicate,1-has all duplicate,2-does 'False' duplicate")
-    parser.add_argument("--bitstring", "-b", type=int, default=2,
-                        help="type of united bitstring for atomic bitstrings A (substrats) and B (products): "
-                             "0 - [A*B], 1 - [A+B+(A*B)], 2 - [(A!B)+(B!A)+(A*B)], 3 - [A+B], 4 - [(AxorB)+(A*B)], "
-                             "5-Based on the pairwise (name_frag_in_sub_set, name_frag_in_prod_set)")
-    parser.add_argument("--b_length", "-l", type=int, default=2048, help="lenght of bitstrings")
-    parser.add_argument("--folds", "-N", type=int, default=5,
-                        help="the number of partitions of the data: sets to training and test")
-    parser.add_argument("--repeat", "-r", type=int, default=1,
-                        help="the number of repetitions of the cross-validation procedure")
+def _common(parser):
+    parser.add_argument("--fragment_type", "-ft", type=str, default="aug",
+                        help="Method of fragmentation of a molecule: "
+                             "'seq' - sequenced fragments,"
+                             "'aug' - augmented fragments")
+    parser.add_argument("--min", "-m", type=int, default=1,
+                        help="The minimal sequenced fragments length")
+    parser.add_argument("--max", "-M", type=int, default=8,
+                        help="The maximal sequenced fragments length")
+    parser.add_argument("--deep", "-deep", type=int, default=3,
+                        help="The maximum number of levels of augmented fragments")
+    parser.add_argument("--fragment_count", "-fc", type=bool, default=False,
+                        help="Accounted for the number of fragments of each type:"
+                             "False - to ignored,"
+                             "True - to account.")
+    parser.add_argument("--pairs", "-p", type=str, default="simple",
+                        help="Type of union of atoms pairs: "
+                             "'sim' - uniting atoms with the same name (in periodic table), "
+                             "'eqv' - uniting same name with atoms symmetries refinement.")
+    parser.add_argument("--bitstring", "-b", type=str, default="kron",
+                        help="Type of union bit-strings the reagents (A) and the products (B): "
+                             "'and' - intersection of information [A & B], "
+                             "'xor' - United 'symmetric difference' and 'intersection' [(A ^ B) + (A & B)],"
+                             "'kron' - Tensor product of information.")  # 1-[A+B+(A*B)],2-[(A!B)+(B!A)+(A*B)],3-[A+B],
+    parser.add_argument("--length", "-l", type=int, default=2048, help="Length the bit-strings")
     parser.add_argument("--dfs", "-dfs", type=int, default=0,
-                        help="Choice of method for reconsidering the assignment: "
-                             "0-for symmetrically equivalent groups, 1-for the values of probabilities")
+                        help="Choice of the revision method (Depth-first search): "
+                             "0 - by the symmetrically equivalent groups, "
+                             "1 - by the values of probabilities")
     parser.add_argument("--debug", action='store_true', help="debug mod")
-    return parser
 
 
 def train(subparsers):
-    parser = subparsers.add_parser('train', help='reaction balanser',
+    parser = subparsers.add_parser('train', help='The stage of the mapping learning on the reaction sets',
                                    formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument("--input", "-i", default="input.rdf", type=FileType(),
-                        help="RDF inputfile")
-    parser.add_argument("--output", "-o", default="output.rdf", type=FileType('w'),
-                        help="RDF outputfile")
-
+                        help="RDF inputfile on which to learn to create mapping")
+    parser.add_argument("--model", "-n", default="model.dat", type=FileType('w'),
+                        help="File with trained model")
+    parser.add_argument("--duplicate", "-d", type=bool, default=True,
+                        help="Accounted the atomic pairs information duplicates: "
+                             "True - doesn't duplicate,"
+                             "False - does all duplicate.")  # "2-does 'False' duplicate")
+    _common(parser)
     parser.set_defaults(func=train_core)
 
 
 def predict(subparsers):
-    parser = subparsers.add_parser('predict', help='reaction balanser',
+    parser = subparsers.add_parser('predict', help='The stage of the mapping prediction on the new reaction  sets',
                                    formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input", "-i", default="input.rdf", type=FileType(),
+                        help="RDF inputfile to which want to create the mapping")
+    parser.add_argument("--model", "-n", default="model.dat", type=FileType(),
+                        help="File with trained model")
+    parser.add_argument("--output", "-o", default="output.rdf", type=FileType('w'),
+                        help="RDF outputfile")
+    parser.add_argument("--rank", "-ro", default="rank/rank.txt", type=FileType('w'),
+                        help="The debug file with average values of the mapping probability a reaction atoms "
+                             "at the mappings value True/False")
+    _common(parser)
     parser.set_defaults(func=predict_core)
 
 
 def cross_validation(subparsers):
-    parser = subparsers.add_parser('cross_validation', help='reaction balanser',
+    parser = subparsers.add_parser('cross_validation', help='The stage of the process cross-validation',
                                    formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input", "-i", default="input.rdf", type=FileType(),
+                        help="RDF inputfile")
+    parser.add_argument("--duplicate", "-d", type=bool, default=True,
+                        help="Accounted the atomic pairs information duplicates: "
+                             "True - doesn't duplicate,"
+                             "False - does all duplicate.")  # "2-does 'False' duplicate")
+    parser.add_argument("--fold", "-k", type=int, default=5,
+                        help="Split the data into k consecutive folds.")
+    parser.add_argument("--repeat", "-r", type=int, default=1,
+                        help="The number of repetitions of the cross-validation procedure.")
+    _common(parser)
     parser.set_defaults(func=cross_validation_core)
 
 
