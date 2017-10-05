@@ -19,8 +19,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
 #
-from NaiveMapper.CLI import main
+from NaiveMapper.CLI import launcher
 
 
 if __name__ == '__main__':
-    main()
+    launcher()

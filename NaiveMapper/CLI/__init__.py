@@ -1,8 +1,10 @@
-from .parser import parse_args
-from ..core import mapper_core
+from .parser import argparser
 
 
-def main():
-    parser = parse_args()
-    args = parser.parse_args()
-    mapper_core(**vars(args))
+def launcher():
+    _argparser = argparser()
+    args = _argparser.parse_args()
+    if 'func' in args:
+        args.func(**vars(args))
+    else:
+        _argparser.print_help()

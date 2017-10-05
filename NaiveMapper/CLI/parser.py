@@ -1,4 +1,9 @@
-import argparse
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from importlib.util import find_spec
+from .main_cross_validation import cross_validation_core
+from .main_predict import predict_core
+from .main_train import train_core
+from ..version import version
 
 
 def parse_args():
@@ -34,4 +39,43 @@ def parse_args():
                         help="Choice of method for reconsidering the assignment: "
                              "0-for symmetrically equivalent groups, 1-for the values of probabilities")
     parser.add_argument("--debug", action='store_true', help="debug mod")
+    return parser
+
+
+def train(subparsers):
+    parser = subparsers.add_parser('train', help='reaction balanser',
+                                   formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input", "-i", default="input.rdf", type=FileType(),
+                        help="RDF inputfile")
+    parser.add_argument("--output", "-o", default="output.rdf", type=FileType('w'),
+                        help="RDF outputfile")
+
+    parser.set_defaults(func=train_core)
+
+
+def predict(subparsers):
+    parser = subparsers.add_parser('predict', help='reaction balanser',
+                                   formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.set_defaults(func=predict_core)
+
+
+def cross_validation(subparsers):
+    parser = subparsers.add_parser('cross_validation', help='reaction balanser',
+                                   formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.set_defaults(func=cross_validation_core)
+
+
+def argparser():
+    parser = ArgumentParser(description="CGRtools", epilog="(c) Dr. Ramil Nugmanov", prog='cgrtools')
+    parser.add_argument("--version", "-v", action="version", version=version(), default=False)
+    subparsers = parser.add_subparsers(title='subcommands', description='available utilities')
+
+    train(subparsers)
+    predict(subparsers)
+    cross_validation(subparsers)
+
+    if find_spec('argcomplete'):
+        from argcomplete import autocomplete
+        autocomplete(parser)
+
     return parser
