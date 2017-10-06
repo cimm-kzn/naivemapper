@@ -7,10 +7,11 @@ from ..version import version
 
 
 def _common(parser):
-    parser.add_argument("--fragment_type", "-ft", type=str, default="aug",
+    parser.add_argument("--fragment_type", "-ft", type=int, default=2,
                         help="Method of fragmentation of a molecule: "
-                             "'seq' - sequenced fragments,"
-                             "'aug' - augmented fragments")
+                             "0 = 'seq' - sequenced fragments,"
+                             "1 = 'aug' - augmented fragments,"
+                             "2 = 'seq+aug' - sequenced and augmented fragments.")
     parser.add_argument("--min", "-m", type=int, default=1,
                         help="The minimal sequenced fragments length")
     parser.add_argument("--max", "-M", type=int, default=8,
@@ -21,15 +22,14 @@ def _common(parser):
                         help="Accounted for the number of fragments of each type:"
                              "False - to ignored,"
                              "True - to account.")
-    parser.add_argument("--pairs", "-p", type=str, default="simple",
-                        help="Type of union of atoms pairs: "
-                             "'sim' - uniting atoms with the same name (in periodic table), "
-                             "'eqv' - uniting same name with atoms symmetries refinement.")
-    parser.add_argument("--bitstring", "-b", type=str, default="kron",
+    parser.add_argument("--bitstring", "-b", type=int, default=0,
                         help="Type of union bit-strings the reagents (A) and the products (B): "
-                             "'and' - intersection of information [A & B], "
-                             "'xor' - United 'symmetric difference' and 'intersection' [(A ^ B) + (A & B)],"
-                             "'kron' - Tensor product of information.")  # 1-[A+B+(A*B)],2-[(A!B)+(B!A)+(A*B)],3-[A+B],
+                             "0 = 'and' - intersection of information [A & B], "
+                             "1 = [A+B+(A*B)],"
+                             "2 = [(A!B)+(B!A)+(A*B)],"
+                             "3 = [A+B],"
+                             "4 = 'xor' - United 'symmetric difference' and 'intersection' [(A ^ B) + (A & B)],"
+                             "5 = 'kron' - Tensor product of information.")
     parser.add_argument("--length", "-l", type=int, default=2048, help="Length the bit-strings")
     parser.add_argument("--dfs", "-dfs", type=int, default=0,
                         help="Choice of the revision method (Depth-first search): "
@@ -45,6 +45,10 @@ def train(subparsers):
                         help="RDF inputfile on which to learn to create mapping")
     parser.add_argument("--model", "-n", default="model.dat", type=FileType('w'),
                         help="File with trained model")
+    parser.add_argument("--pairs", "-p", type=str, default="simple",
+                        help="Type of union of atoms pairs: "
+                             "'sim' - uniting atoms with the same name (in periodic table), "
+                             "'eqv' - uniting same name with atoms symmetries refinement.")
     parser.add_argument("--duplicate", "-d", type=bool, default=True,
                         help="Accounted the atomic pairs information duplicates: "
                              "True - doesn't duplicate,"
@@ -74,6 +78,10 @@ def cross_validation(subparsers):
                                    formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument("--input", "-i", default="input.rdf", type=FileType(),
                         help="RDF inputfile")
+    parser.add_argument("--pairs", "-p", type=str, default="simple",
+                        help="Type of union of atoms pairs: "
+                             "'sim' - uniting atoms with the same name (in periodic table), "
+                             "'eqv' - uniting same name with atoms symmetries refinement.")
     parser.add_argument("--duplicate", "-d", type=bool, default=True,
                         help="Accounted the atomic pairs information duplicates: "
                              "True - doesn't duplicate,"

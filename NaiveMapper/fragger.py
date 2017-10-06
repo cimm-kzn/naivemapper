@@ -36,7 +36,7 @@ def pairwise(iterable):
 
 
 class Fragger(object):
-    def __init__(self, _min: int = 1, _max: int = 10, _deep: int = 3, f_type=0):
+    def __init__(self, _min: int = 1, _max: int = 10, _deep: int = 3, f_type: int=2):
         self.__min = _min
         self.__max = _max
         self.__deep = _deep
