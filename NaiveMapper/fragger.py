@@ -71,12 +71,13 @@ class Fragger(object):
         """
         создает словарь атомов и словарей фрагментов (атомы с окружением/augmented atoms).
         """
-        return {x: dict.fromkeys({'%d^%s' % (n, get_cgr_string(y, y.get_morgan()))
+        return {x: dict.fromkeys(['%d^%s' % (n, get_cgr_string(y, y.get_morgan()))
                                   for n, y in enumerate(data.get_environment([x], dante=True, deep=self.__deep))
-                                  if (n and self.__type == 2) or self.__type in [0, 1]}, 1)
+                                  if (n and self.__type == 2) or self.__type == 1],
+                                 1)
                 for x in data.nodes()}
 
     def __aug_and_seq(self, data):
-        """Создает список фрагментов состоящих из augmented(1:n) и sequences(0:3)"""
+        """Создает список фрагментов состоящих из augmented(1:n) и sequences(_min:_max)"""
         aug = self.__augmented(data)
         return {x: dict(y, **aug[x]) for x, y in self.__sequences(data).items()}

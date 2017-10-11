@@ -7,11 +7,10 @@ import copy
 
 
 class Pairwise(object):
-    def __init__(self, p_type=0, d_type=0):
-        self.__pairs_type = self.simple if p_type == 0 else self.equivalent
+    def __init__(self, p_type=0, d_type=True):
+        self.__pairs_type = self.equivalent if p_type else self.simple
         if p_type:
-            self.__duplicate_type = self.__does if d_type == 0 else self.__has if d_type == 1 else self.__doesFalse
-        # self.__fear = FEAR()  # self.__morgan = Morgan()
+            self.__duplicate_type = self.__doesnt if d_type else self.__has
 
     def get(self, sub_graph: nx.Graph, prod_graph: nx.Graph) -> (Iterable[Tuple[int, int]], pd.Series):
         """
@@ -52,7 +51,7 @@ class Pairwise(object):
         return self.__duplicate_type(grup, c, s_grup, p_grup)
 
     @staticmethod
-    def __does(grup, c, s_grup, p_grup):
+    def __doesnt(grup, c, s_grup, p_grup):
         pairs = []
         for i in grup:
             pairs.append((s_grup[i[0]][0], p_grup[i[1]][0]))
@@ -60,7 +59,7 @@ class Pairwise(object):
         return pairs, pd.Series(c)
 
     @staticmethod
-    def __doesFalse(grup, c, s_grup, p_grup):
+    def __doesFalse(grup, c, s_grup, p_grup):  # Not used
         y = []
         pairs = []
         for j, i in enumerate(grup):
