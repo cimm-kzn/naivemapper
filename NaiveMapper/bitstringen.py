@@ -30,6 +30,7 @@ class Bitstringen(object):
         self.__combiner = self.combo1 if b_type == 1 else self.combo2 if b_type == 2 else self.combo3 if b_type == 3 \
             else self.combo4 if b_type == 4 else self.combo5 if b_type == 5 else self.combo0
         self.__b_type = b_type
+
         self.__length = b_length
         self.__type = f_count
 
@@ -96,7 +97,7 @@ class Bitstringen(object):
         """
         only_a = set(x for x in s_set if x not in p_set)
         only_b = set(y for y in p_set if y not in s_set)
-        return pd.concat({self.get_bitstring(only_a), self.get_bitstring(only_b), self.combo0(s_set, p_set)},
+        return pd.concat([self.get_bitstring(only_a), self.get_bitstring(only_b), self.combo0(s_set, p_set)],
                          keys=['A!B', 'B!A', 'A*B'])
 
     def combo3(self, s_set, p_set):

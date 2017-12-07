@@ -7,7 +7,7 @@ from ..version import version
 
 
 def _common(parser):
-    parser.add_argument("--pairs", "-p", type=str, default="simple",
+    parser.add_argument("--pairs", "-p", type=int, default=0,
                         help="Type of union of atoms pairs:\n"
                              "0 = 'sim' - uniting atoms with the same name (in periodic table),\n"
                              "1 = 'eqv' - uniting same name with atoms symmetries refinement.")

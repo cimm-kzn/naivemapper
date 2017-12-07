@@ -1,6 +1,7 @@
 from collections import defaultdict
 from itertools import chain
 from CGRtools.strings import get_morgan
+import time
 
 
 def equivalent(morgan_dict):
@@ -73,36 +74,3 @@ def get_map_dfs(s_graph, p_graph, _map, *_):
         trace.difference_update(walk({first}, first))
 
     return {p: s for s, p in new_map.items()}
-
-
-def get_map_dfsdb(s_graph, p_graph, _map, matrix):
-    cost, new_map = 0, {}
-    twins = {x: set(m.loc[lambda m_row: abs(m_row - c) < .0000001].index.tolist())
-             for x, m, c in ((x, matrix[x], matrix.loc[y, x]) for y, x in _map.items())}
-
-    def dfs(s_atom, n_map, c):
-        global cost, new_map
-        for p_atom in sorted(twins[s_atom]-set(n_map.values())):
-            c += dynamic_bonds(s_graph.adj[s_atom], p_graph.adj[p_atom], n_map)
-            if c < cost:
-                n_map[s_atom] = p_atom
-                atom = next((x for x in twins if x > s_atom), False)
-                if atom:
-                    dfs(atom, n_map.copy(), c)
-                else:
-                    new_map = n_map
-                    cost = c
-
-    for p, s in _map.items():
-        new_map[s] = p
-        cost += dynamic_bonds(s_graph.adj[s], p_graph.adj[p], new_map)
-    dfs(min(twins), dict(), 0)
-
-    return {p: s for s, p in new_map.items()}
-
-
-def dynamic_bonds(s_edge, p_edge, maps):
-    ms, mp = set(maps) & set(s_edge), set(maps.values()) & set(p_edge)
-    mps = set([s for s, p in maps.items() if p in mp])
-    c = len(ms ^ mps) + abs(sum([s_edge[i]['s_bond'] for i in ms]) - sum([p_edge[j]['s_bond'] for j in mp]))
-    return c

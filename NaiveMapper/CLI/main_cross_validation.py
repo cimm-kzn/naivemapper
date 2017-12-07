@@ -50,7 +50,7 @@ def cross_validation_core(**kwargs):
                 test_file = RDFwrite(fw)
                 test = indexes[n::folds]  # для предсказания выбираются каждая N-ая реакция(из перемешенного списка)
 
-                for num, reaction in enumerate(worker(RDFread(open(kwargs['input'])), kwargs['debug'])):
+                for num, reaction in enumerate(worker(RDFread(open(kwargs['input'])), False)):
                     if num in test:  # Если номер рассматриваемой реакции совпал с номером тестового набора, то ...
                         # записываем её в файл для предсказания.
                         test_file.write(reaction)
@@ -76,9 +76,8 @@ def cross_validation_core(**kwargs):
                         pairs.extend(drop_pairs)
                         y.extend([yy for yy in nb.predict_log_proba(x)])
 
-                    _map = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
+                    _map, _ = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
                     # на основании обученной модели перемаппливаются атомы продукта
                     reaction['products'] = remap(reaction['products'], _map)
-
                     output.write(reaction)  # запись реакции в исходящий файл
             ok, nok = truth(file_1, file_2, ok, nok, errors[n], kwargs['debug'])  # проверка предсказанных данных
