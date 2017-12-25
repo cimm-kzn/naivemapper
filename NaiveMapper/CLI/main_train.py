@@ -1,6 +1,8 @@
-import pandas as pd
 import pickle
+import pandas as pd
+from multiprocess import Pool, Process, Queue
 from sklearn.naive_bayes import BernoulliNB
+from sklearn.neural_network import MLPClassifier
 
 from CGRtools.files.RDFrw import RDFread
 from ..bitstringen import Bitstringen
