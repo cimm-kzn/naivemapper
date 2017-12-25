@@ -6,7 +6,30 @@ from .main_train import train_core
 from ..version import version
 
 
+class DefaultList(list):
+    @staticmethod
+    def __copy__(*_):
+        return []
+
+
 def _common(parser):
+    parser.add_argument("--type_model", "-tm", type=str, default="nb",
+                        help="Model type used for training / prediction AAM:"
+                             "'nb' - used naive Bayes classifier;"
+                             "'mlp' - used MLP classifier.")
+    parser.add_argument("--mlp_hls", "-hls", action='append', type=int, default=DefaultList([100]),
+                        help="If the model type is 'mlp', then the following hyper-parameters 'hidden_layer_sizes'."
+                             "Example, write -hls 100 [-hls 100] => [100, 100]")
+    parser.add_argument("--mlp_a", "-a", type=str, default="logistic",
+                        choices=['identity', 'logistic', 'tanh', 'relu'],
+                        help="If the model type is 'mlp', then the following hyper-parameters 'activation'")
+    parser.add_argument("--mlp_s", "-s", type=str, default="adam",
+                        choices=['lbfgs', 'sgd', 'adam'],
+                        help="If the model type is 'mlp', then the following hyper-parameters 'solver'")
+    parser.add_argument("--mlp_alpha", "-alpha", type=float, default=0.0001,
+                        help="If the model type is 'mlp', then the following hyper-parameters 'alpha'")
+    parser.add_argument("--batch_chunk", "-bc", type=int, default=1,
+                        help="Breakdown by the count of reactions (for model training).")
     parser.add_argument("--pairs", "-p", type=int, default=0,
                         help="Type of union of atoms pairs:\n"
                              "0 = 'sim' - uniting atoms with the same name (in periodic table),\n"
@@ -48,7 +71,7 @@ def _common(parser):
 def train(subparsers):
     parser = subparsers.add_parser('train', help='The stage of the mapping learning on the reaction sets',
                                    formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--input", "-i", default="input.rdf", type=FileType('r'),
+    parser.add_argument("--input", "-i", default="input.rdf", type=str,
                         help="RDF input file on which to learn to create mapping")
     parser.add_argument("--model", "-n", default="model.dat", type=FileType('wb'),
                         help="File with trained model")

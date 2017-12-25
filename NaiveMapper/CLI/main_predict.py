@@ -20,6 +20,12 @@ def remap(graphs, maps):
 def predict_core(**kwargs):
     # Загружаем уже существующую модель в Наивный Бейсовский классификатор
     model = pickle.load(kwargs['model'])
+    print(model['type_model'])
+    if model['type_model'] == 'mlp':
+        print('hidden_layer_sizes:\t{}\nactivation:\t{}\nsolver:\t{}\nalpha:\t{}'.format(tuple(model['mlp_hls']),
+                                                                                         model['mlp_a'],
+                                                                                         model['mlp_s'],
+                                                                                         model['mlp_alpha']))
     fragger = Fragger(model['min'], model['max'], model['deep'], model['fragment_type'])
     bitstring = Bitstringen(model['bitstring'], model['length'], model['fragment_count'])
     # При предсказании, НИКОГДА не применяем алгоритма Моргана для генерации пар сим./экв. атомов
@@ -68,5 +74,5 @@ def predict_core(**kwargs):
     # print(dfs_pr)
     total_time["All"] += timer() - time_
     _, _ = truth(kwargs['input'], kwargs['output'], 0, 0, [], kwargs['debug'])  # Проверка соответствия
-    if kwargs['dedug']:
+    if kwargs['debug']:
         pprint(total_time)
