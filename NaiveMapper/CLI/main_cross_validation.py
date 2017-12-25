@@ -83,10 +83,8 @@ def cross_validation_core(**kwargs):
                     p_graph = nx.union_all(reaction['products'])
                     reaction['products'] = remap(reaction['products'],
                                                  {k: k + max(p_graph.nodes()) for k in p_graph.nodes()})
-
-
                     y, pairs = [], []
-                    for x, _, drop_pairs in getXY(reaction, fragger, pairwise1, bitstring, kwargs['chunk']):
+                    for x, _, drop_pairs in getXY(reaction, fragger, pairwise2, bitstring, kwargs['chunk']):
                         '''
                         на основании сгенерированного набора битовых строк из обученой модели выводятся значения 
                         логорифмов вероятностей проецирования (отображения) атомов
