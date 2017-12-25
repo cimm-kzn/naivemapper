@@ -1,5 +1,7 @@
+from multiprocess import Pool, Process, Queue
 from random import shuffle
 from sklearn.naive_bayes import BernoulliNB
+from sklearn.neural_network import MLPClassifier
 import networkx as nx
 import pandas as pd
 
@@ -44,20 +46,34 @@ def cross_validation_core(**kwargs):
             print("Training set descriptor calculation")
             # Контрольная выборка, для оценки предсказательной способности
             file_1 = 'cross_v/mapping{}{}.rdf'.format(r, n)
-            nb = BernoulliNB(alpha=1.0, binarize=None)  # Создаем новую модель Наивного Бейсовского классификатора
+            if kwargs['type_model'] is 'nb':
+                m = BernoulliNB(alpha=1.0, binarize=None)  # Создаем новую модель Наивного Бейсовского классификатора
+            else:
+                hls, a, s, alpha = tuple(kwargs['mlp_hls']), kwargs['mlp_a'], kwargs['mlp_s'], kwargs['mlp_alpha']
+                m = MLPClassifier(hidden_layer_sizes=hls, activation=a, solver=s, alpha=alpha)
 
             with open(file_1, 'w') as fw:  # with open(kwargs['input']) as fr, open(file_1, 'w') as fw:
                 test_file = RDFwrite(fw)
-                test = indexes[n::folds]  # для предсказания выбираются каждая N-ая реакция(из перемешенного списка)
+                test = indexes[n::folds]  # для предсказания выбираются каждая N-ая реакция из списка
+                train = [i for i in indexes if i not in test]
 
+                X_train, Y_train = [], []
                 for num, reaction in enumerate(worker(RDFread(open(kwargs['input'])), False)):
                     if num in test:  # Если номер рассматриваемой реакции совпал с номером тестового набора, то ...
                         # записываем её в файл для предсказания.
                         test_file.write(reaction)
                     else:  # если номер рассматриваем реакции НЕ совпал с номером тестового набора, то ...
                         for x, y, _ in getXY(reaction, fragger, pairwise1, bitstring, kwargs['chunk']):
-                            # обучаем нашу модель на основании битовыx строк дескрипторов(Х) и строк значений ААО(Y)
-                            nb.partial_fit(x, y, classes=pd.Series([False, True]))
+                            X_train.append(x)
+                            Y_train.append(y)
+                            if num+1 % kwargs['batch_chunk'] == 0 or num == max(train):
+                                """Обучаем нашу модель на основании: 
+                                    - битовыx строк дескрипторов(Х), 
+                                    - строк значений ААО(Y)"""
+                                m.partial_fit(pd.concat(X_train, ignore_index=True),
+                                              pd.concat(Y_train, ignore_index=True),
+                                              classes=pd.Series([False, True]))
+                                X_train.clear(), Y_train.clear()
 
             print("Testing set descriptor calculation")
             file_2 = 'cross_v/output{}{}.rdf'.format(r, n)  # Контрольная выборка, с предсказанными ААО
@@ -67,17 +83,21 @@ def cross_validation_core(**kwargs):
                     p_graph = nx.union_all(reaction['products'])
                     reaction['products'] = remap(reaction['products'],
                                                  {k: k + max(p_graph.nodes()) for k in p_graph.nodes()})
+
+
                     y, pairs = [], []
-                    for x, _, drop_pairs in getXY(reaction, fragger, pairwise2, bitstring, kwargs['chunk']):
+                    for x, _, drop_pairs in getXY(reaction, fragger, pairwise1, bitstring, kwargs['chunk']):
                         '''
                         на основании сгенерированного набора битовых строк из обученой модели выводятся значения 
                         логорифмов вероятностей проецирования (отображения) атомов
                         '''
                         pairs.extend(drop_pairs)
-                        y.extend([yy for yy in nb.predict_log_proba(x)])
+                        y.extend([yy for yy in m.predict_log_proba(x)])
 
-                    _map, _ = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
+                    _map, _ = mapping(pairs, y, nx.union_all(reaction['products']),
+                                      nx.union_all(reaction['substrats']))
                     # на основании обученной модели перемаппливаются атомы продукта
                     reaction['products'] = remap(reaction['products'], _map)
                     output.write(reaction)  # запись реакции в исходящий файл
+
             ok, nok = truth(file_1, file_2, ok, nok, errors[n], kwargs['debug'])  # проверка предсказанных данных

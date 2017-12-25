@@ -67,13 +67,13 @@ class Bitstringen(object):
         Фрагменты атома реагента/продукта ХЕШируется(т.е. преобритается уникальный код).
         Элемент битовой строки имеет значение 1 если такой фрагмент от данного атома существует, и 0 - в ином случае.
         """
-        bitstring = pd.Series(0, index=range(self.__length))
+        bitstring = pd.Series(False, index=range(self.__length))
         for k in descriptors:
             hs = int(hashlib.md5(k.encode()).hexdigest(), 16)
-            bitstring[hs % self.__length] = 1
-            bitstring[hs // self.__length % self.__length] = 1
+            bitstring[hs % self.__length] = True
+            bitstring[hs // self.__length % self.__length] = True
             # l = bitstring[bitstring.isin([1])].index.tolist()
-        return bitstring > 0
+        return bitstring
 
     def combo0(self, s_set, p_set):
         # A*B (в битовой строке ставится 1 если фрагменты присутствовали в реагенте И в продукте)
@@ -120,4 +120,4 @@ class Bitstringen(object):
         """
         Паросочетания всех фрагментов реагентов и продуктов
         """
-        return self.get_bitstring([s_fr + '&' + p_fr for s_fr, p_fr in product(s_set, p_set)])
+        return self.get_bitstring(['{}&{}'.format(s_fr, p_fr) for s_fr, p_fr in product(s_set, p_set)])

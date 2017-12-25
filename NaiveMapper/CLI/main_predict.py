@@ -1,3 +1,4 @@
+from multiprocess import Pool, Process, Queue
 from pprint import pprint
 from timeit import default_timer as timer
 import networkx as nx
@@ -26,18 +27,20 @@ def predict_core(**kwargs):
     pairwise = Pairwise(0, False)
 
     # dfs_pr = [0, 0, 0]
-    total_time = dict.fromkeys(["Frag+Bitstr", "Predict", "Munkres", "DFS1", "DFS2", "All"], 0)
+    total_time = dict.fromkeys(["Bitstring", "Predict", "Munkres", "DFS1", "DFS2", "All"], 0)
     time_ = timer()
 
     print("Testing set descriptor calculation")
     with open(kwargs['input'], encoding='cp1251') as fr, open(kwargs['output'], 'w') as fw:
         outputdata = RDFwrite(fw)
+
         for reaction in worker(RDFread(fr), kwargs['debug']):
             p_graph = nx.union_all(reaction['products'])
             reaction['products'] = remap(reaction['products'], {k: k + max(p_graph.nodes()) for k in p_graph.nodes()})
-            y, pairs = [], []
+
             start_1 = timer()
             time_pr = 0
+            y, pairs = [], []
             for x, _, drop_pairs in getXY(reaction, fragger, pairwise, bitstring, model['chunk']):
                 '''
                 На основании сгенерированного набора битовых строк дескрипторов из обученой модели 
@@ -49,7 +52,7 @@ def predict_core(**kwargs):
                 end_2 = timer()
                 total_time["Predict"] += (end_2 - start_2)
                 time_pr += (end_2 - start_2)
-            total_time["Frag+Bitstr"] += (timer() - start_1 - time_pr)
+            total_time["Bitstring"] += (timer() - start_1 - time_pr)
             _map, map_time = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
             total_time["Munkres"] += map_time[0]
             total_time["DFS1"] += map_time[1]
@@ -57,16 +60,9 @@ def predict_core(**kwargs):
 
             # на основании обученной модели перемаппливаются атомы продукта
             reaction['products'] = remap(reaction['products'], _map)
-            '''
-            # reaction['meta']['Likelihood'] = opt_lh  # доп.графа в исх.файле, со ср.знач.вероятностей отображения
-            for s, p_lh in lh.items():
-                lh_name = str(s) + '_ATOM_PROBABILITY_MAP'
-                reaction['meta'][lh_name] = p_lh
-                # доп.графы в исх.файле, с вероятностями отображения данного атома реагента на все атомы продукта
-            '''
             outputdata.write(reaction)  # запись реакции в исходящий файл
-    # print(dfs_pr)
+
     total_time["All"] += timer() - time_
     _, _ = truth(kwargs['input'], kwargs['output'], 0, 0, [], kwargs['debug'])  # Проверка соответствия
-    if kwargs['dedug']:
+    if kwargs['debug']:
         pprint(total_time)
