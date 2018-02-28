@@ -1,6 +1,5 @@
 from typing import Tuple, Iterable
 from itertools import product
-from CGRtools.strings import get_morgan
 import networkx as nx
 import pandas as pd
 import copy
@@ -30,7 +29,7 @@ class Pairwise(object):
         return pairs, pd.Series(state)
 
     def equivalent(self, sub_graph, prod_graph):
-        sub_m, prod_m = get_morgan(sub_graph), get_morgan(prod_graph)
+        sub_m, prod_m = sub_graph.get_morgan(), prod_graph.get_morgan()
         s_grup, p_grup = {x: [] for x in set(sub_m.values())}, {y: [] for y in set(prod_m.values())}
         for (k1, v1), (k2, v2) in zip(sub_m.items(), prod_m.items()):
             s_grup[v1].append(k1)

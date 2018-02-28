@@ -1,5 +1,5 @@
-from multiprocess import Pool, Process, Queue
 from pprint import pprint
+from random import shuffle
 from timeit import default_timer as timer
 import networkx as nx
 import pickle
@@ -14,14 +14,15 @@ from ..pairwise import Pairwise
 def remap(graphs, maps):
     tmp = []
     for graph in graphs:
-        tmp.append(graph.remap(maps, copy=True))
+        tmp.append(graph.remap({k: v for k, v in maps.items() if k in graph}, copy=True))
     return tmp
 
 
 def predict_core(**kwargs):
     # Загружаем уже существующую модель в Наивный Бейсовский классификатор
     model = pickle.load(kwargs['model'])
-    fragger = Fragger(model['min'], model['max'], model['deep'], model['fragment_type'])
+    fragger = Fragger(f_type=model['fragment_type'], _min=model['min'], _max=model['max'], _deep=model['deep'],
+                      _min2=model['min2'], _max2=model['max2'], _fuzzy=model['fuzzy'])
     bitstring = Bitstringen(model['bitstring'], model['length'], model['fragment_count'])
     # При предсказании, НИКОГДА не применяем алгоритма Моргана для генерации пар сим./экв. атомов
     pairwise = Pairwise(0, False)
@@ -36,7 +37,9 @@ def predict_core(**kwargs):
 
         for reaction in worker(RDFread(fr), kwargs['debug']):
             p_graph = nx.union_all(reaction['products'])
-            reaction['products'] = remap(reaction['products'], {k: k + max(p_graph.nodes()) for k in p_graph.nodes()})
+            p_nodes = [k + max(p_graph.nodes()) for k in p_graph.nodes()]
+            shuffle(p_nodes)
+            reaction.products._MindfulList__data = remap(reaction['products'], {k: v for k, v in zip(p_graph.nodes(), p_nodes)})
 
             start_1 = timer()
             time_pr = 0
@@ -59,7 +62,7 @@ def predict_core(**kwargs):
             total_time["DFS2"] += map_time[2]
 
             # на основании обученной модели перемаппливаются атомы продукта
-            reaction['products'] = remap(reaction['products'], _map)
+            reaction.products._MindfulList__data = remap(reaction['products'], _map)
             outputdata.write(reaction)  # запись реакции в исходящий файл
 
     total_time["All"] += timer() - time_

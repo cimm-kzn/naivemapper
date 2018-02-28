@@ -1,9 +1,11 @@
-from multiprocess import Pool, Process, Queue
+#!/usr/bin/env python3
+#
 from random import shuffle
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.neural_network import MLPClassifier
 import networkx as nx
 import pandas as pd
+# import os
 
 from CGRtools.files.RDFrw import RDFread, RDFwrite
 from ..bitstringen import Bitstringen
@@ -15,12 +17,13 @@ from ..pairwise import Pairwise
 def remap(graphs, maps):
     tmp = []
     for graph in graphs:
-        tmp.append(graph.remap(maps, copy=True))
+        tmp.append(graph.remap({k: v for k, v in maps.items() if k in graph}, copy=True))
     return tmp
 
 
 def cross_validation_core(**kwargs):
-    fragger = Fragger(kwargs['min'], kwargs['max'], kwargs['deep'], kwargs['fragment_type'])
+    fragger = Fragger(f_type=kwargs['fragment_type'], _min=kwargs['min'], _max=kwargs['max'], _deep=kwargs['deep'],
+                      _min2=kwargs['min2'], _max2=kwargs['max2'], _fuzzy=kwargs['fuzzy'])
     bitstring = Bitstringen(kwargs['bitstring'], kwargs['length'], kwargs['fragment_count'])
     pairwise1, pairwise2 = Pairwise(kwargs['pairs'], kwargs['duplicate']), Pairwise(0, False)
     # pairwise2 - при предсказании, алгоритм Моргана(для выделения групп сим./экв. атомов) никогда не применяется
@@ -45,12 +48,14 @@ def cross_validation_core(**kwargs):
             print('Fold ', n + 1, '/', folds)
             print("Training set descriptor calculation")
             # Контрольная выборка, для оценки предсказательной способности
-            file_1 = 'cross_v/mapping{}{}.rdf'.format(r, n)
+            file_1 = '{}/mapping{}{}.rdf'.format(kwargs['output'], r, n)
             if kwargs['type_model'] is 'nb':
                 m = BernoulliNB(alpha=1.0, binarize=None)  # Создаем новую модель Наивного Бейсовского классификатора
             else:
                 hls, a, s, alpha = tuple(kwargs['mlp_hls']), kwargs['mlp_a'], kwargs['mlp_s'], kwargs['mlp_alpha']
-                m = MLPClassifier(hidden_layer_sizes=hls, activation=a, solver=s, alpha=alpha)
+                bs, lr, mi, es = kwargs['mlp_bs'], kwargs['mlp_lr'], kwargs['mlp_mi'], kwargs['mlp_es']
+                m = MLPClassifier(hidden_layer_sizes=hls, activation=a, solver=s, alpha=alpha,
+                                  batch_size=bs, learning_rate=lr, max_iter=mi, early_stopping=es)
 
             with open(file_1, 'w') as fw:  # with open(kwargs['input']) as fr, open(file_1, 'w') as fw:
                 test_file = RDFwrite(fw)
@@ -76,13 +81,16 @@ def cross_validation_core(**kwargs):
                                 X_train.clear(), Y_train.clear()
 
             print("Testing set descriptor calculation")
-            file_2 = 'cross_v/output{}{}.rdf'.format(r, n)  # Контрольная выборка, с предсказанными ААО
+            file_2 = '{}/output{}{}.rdf'.format(kwargs['output'], r, n)  # Контрольная выборка, с предсказанными ААО
             with open(file_1) as fr, open(file_2, 'w') as fw:
                 output = RDFwrite(fw)
                 for reaction in worker(RDFread(fr), kwargs['debug']):  # берем по 1 реакции из файла тестовго набора
                     p_graph = nx.union_all(reaction['products'])
-                    reaction['products'] = remap(reaction['products'],
-                                                 {k: k + max(p_graph.nodes()) for k in p_graph.nodes()})
+                    p_nodes = [k + max(p_graph.nodes()) for k in p_graph.nodes()]
+                    shuffle(p_nodes)
+                    reaction.products._MindfulList__data = remap(reaction['products'],
+                                                                 {k: v for k, v in zip(p_graph.nodes(), p_nodes)})
+
                     y, pairs = [], []
                     for x, _, drop_pairs in getXY(reaction, fragger, pairwise2, bitstring, kwargs['chunk']):
                         '''
@@ -95,7 +103,7 @@ def cross_validation_core(**kwargs):
                     _map, _ = mapping(pairs, y, nx.union_all(reaction['products']),
                                       nx.union_all(reaction['substrats']))
                     # на основании обученной модели перемаппливаются атомы продукта
-                    reaction['products'] = remap(reaction['products'], _map)
+                    reaction.products._MindfulList__data = remap(reaction['products'], _map)
                     output.write(reaction)  # запись реакции в исходящий файл
 
             ok, nok = truth(file_1, file_2, ok, nok, errors[n], kwargs['debug'])  # проверка предсказанных данных

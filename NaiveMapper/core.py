@@ -9,7 +9,7 @@ import pandas as pd
 from sklearn.utils.tests.test_linear_assignment import _hungarian
 
 from CGRtools.files.RDFrw import RDFread
-from CGRtools.preparer import CGRcombo
+from CGRtools.preparer import CGRpreparer
 from .DFS2 import DFSdb
 from .DFS import get_map_dfs
 
@@ -82,12 +82,12 @@ def mapping(pairs, y, prod_graph, sub_graph):
 
 
 def truth(f_test, f_pred, ok, nok, er, debug=False):  # Проверка соответствия
-    cgr = CGRcombo()
+    cgr = CGRpreparer()
     with open(f_pred, encoding='cp1251') as predfile, open(f_test, encoding='cp1251') as testfile:
         # , open(kwargs['output_rank'], 'w') as f_txt:
         for i, (pred, test) in enumerate(zip(RDFread(predfile).read(), RDFread(testfile).read()), start=1):
-            predHash = cgr.getCGR(pred).get_fear_hash()
-            testHash = cgr.getCGR(test).get_fear_hash()
+            predHash = cgr.getCGR(pred).get_signature_hash()
+            testHash = cgr.getCGR(test).get_signature_hash()
             # p_r = float(pred['meta']['Likelihood'])
             if predHash == testHash:
                 ok += 1

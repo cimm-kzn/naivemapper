@@ -1,7 +1,6 @@
 from collections import defaultdict
 from itertools import chain
-from CGRtools.strings import get_morgan
-import time
+# from CGRtools.strings import get_morgan
 
 
 def equivalent(morgan_dict):
@@ -65,7 +64,7 @@ def get_map_dfs(s_graph, p_graph, _map, *_):
         return trace
 
     new_map = {}
-    p_grup = {_map[y]: x for y, x in equivalent(get_morgan(p_graph)).items()}
+    p_grup = {_map[y]: x for y, x in equivalent(p_graph.get_morgan()).items()}
     # {атом_реагента: [атомы_продукта, на который может отобразиться данный атом реагента (по Моргану)]}
 
     trace = set(s_graph)

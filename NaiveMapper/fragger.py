@@ -20,7 +20,6 @@
 #  MA 02110-1301, USA.
 #
 from collections import Counter
-from CGRtools.strings import get_cgr_string
 from itertools import tee
 from typing import Dict, Tuple
 import networkx as nx
@@ -36,20 +35,24 @@ def pairwise(iterable):
 
 
 class Fragger(object):
-    def __init__(self, _min: int = 1, _max: int = 10, _deep: int = 3, f_type: int=2):
+    def __init__(self, _min=1, _max=8, _deep=3, f_type='augSeq', _min2=3, _max2=8, _fuzzy=2):
         self.__min = _min
         self.__max = _max
         self.__deep = _deep
+        self.__min2 = _min2
+        self.__max2 = _max2
+        self.__fLen = _fuzzy
         self.__type = f_type
-        self.__fragment = self.__sequences if self.__type == 0 else self.__augmented if self.__type == 1 \
-            else self.__aug_and_seq
+        self.__fragment = self.__sequences if self.__type == 'seq' else self.__augmented if self.__type == 'aug' \
+            else self.__aug_and_seq if self.__type == 'augSeq' else self.__fuzzySeq if self.__type == 'fSeq' \
+            else self.__fuzzyAug
 
     def get(self, data: nx.Graph) -> Dict[int, Dict[Tuple[Tuple], int]]:
         return self.__fragment(data)
 
     def __sequences(self, data):
         """
-        создает словарь атомов и словарей фрагментов (цепочки атомов и связей) и их количеств.
+        Создает словарь атомов и словарей фрагментов (цепочки атомов и связей) и их количеств.
         """
         def path_namer(path):
             frag = []
@@ -69,15 +72,58 @@ class Fragger(object):
 
     def __augmented(self, data):
         """
-        создает словарь атомов и словарей фрагментов (атомы с окружением/augmented atoms).
+        Создает словарь атомов и словарей фрагментов (атомы с окружением/augmented atoms).
         """
-        return {x: dict.fromkeys(['%d^%s' % (n, get_cgr_string(y, y.get_morgan()))
+        for d in data.nodes():
+            data.node[d]['s_charge'] = 0
+
+        return {x: dict.fromkeys(['%d^%s' % (n, y.get_fear(y.get_morgan()))
                                   for n, y in enumerate(data.get_environment([x], dante=True, deep=self.__deep))
-                                  if (n and self.__type == 2) or self.__type == 1],
+                                  if (n and self.__type == 'augSeq') or self.__type == 'aug'],
                                  1)
                 for x in data.nodes()}
 
     def __aug_and_seq(self, data):
-        """Создает список фрагментов состоящих из augmented(1:n) и sequences(_min:_max)"""
+        """
+        Создает список фрагментов состоящих из augmented(1:n) и sequences(_min:_max)
+        """
         aug = self.__augmented(data)
         return {x: dict(y, **aug[x]) for x, y in self.__sequences(data).items()}
+
+    def __fuzzySeq(self, data):
+        """Создает список фрагментов состоящих из:
+            - коротких четких(clear) sequences(_min:_max)
+            - длинных частично размытых(fuzzy) sequences(_min2:_max2),
+              неточность относится к первым _fS связей, которые должны не точно учитываться"""
+        def path_n(path, i):
+            frag = []
+            for x in path:
+                node_info = data.node[x]
+                frag.append('#%s' % (node_info['element']))
+            for num, (x, y) in enumerate(pairwise(path), start=1):
+                edge_info = data[x][y]
+                if num <= i:
+                    frag.append('~')
+                else:
+                    frag.append(str(edge_info['s_bond']))
+
+            return '.'.join(frag)
+
+        paths = nx.all_pairs_shortest_path(data, cutoff=self.__max2 - 1)
+        fuzzy = {x: dict(Counter(path_n(z, self.__fLen) for z in y.values() if len(z) >= self.__min2)) for x, y in paths}
+        return {x: dict(y, **fuzzy[x]) for x, y in self.__sequences(data).items()}
+
+    def __fuzzyAug(self, data):
+        # for d in data.nodes():
+        #     data.node[d]['s_charge'] = 0
+
+        def changeBonds(copy_data, atom):
+            if copy_data[atom]:
+                for n_atom in copy_data[atom].keys():
+                    for nn_atom in copy_data[n_atom].values():
+                        nn_atom['s_bond'] = 1
+            return copy_data.get_environment([atom], dante=True, deep=self.__deep)
+
+        return {x: dict.fromkeys(['%d^%s' % (n, y.get_fear(y.get_morgan()))
+                                  for n, y in enumerate(changeBonds(data.copy(), x))], 1)
+                for x in data}
