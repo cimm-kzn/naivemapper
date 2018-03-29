@@ -2,6 +2,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from importlib.util import find_spec
 from .main_cross_validation import cross_validation_core
 from .main_predict import predict_core
+from .main_retraining import retrain_core
 from .main_train import train_core
 from ..version import version
 
@@ -135,6 +136,21 @@ def cross_validation(subparsers):
     parser.set_defaults(func=cross_validation_core)
 
 
+def retrain(subparsers):
+    parser = subparsers.add_parser('retrain', help='The stage of the mapping retrain on the new reaction sets',
+                                   formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--input", "-i", default="input.rdf", type=str,
+                        help="RDF input file on which to learn to create mapping")
+    parser.add_argument("--model", "-n", default="model.dat", type=FileType('rb'),
+                        help="File with trained model")
+    parser.add_argument("--model2", "-n2", default="model2.dat", type=FileType('wb'),
+                        help="File with trained model")
+    parser.add_argument("--debug", action='store_true', help="debug mod")
+    _common(parser)
+    parser.set_defaults(func=retrain_core)
+
+
+
 def argparser():
     parser = ArgumentParser(description="NaiveMapper", epilog="(c) A-Deal1993", prog='naivemapper')
     parser.add_argument("--version", "-v", action="version", version=version(), default=False)
@@ -143,6 +159,7 @@ def argparser():
     train(subparsers)
     predict(subparsers)
     cross_validation(subparsers)
+    retrain(subparsers)
 
     if find_spec('argcomplete'):
         from argcomplete import autocomplete

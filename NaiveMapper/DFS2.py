@@ -22,13 +22,9 @@ class DFSdb(object):
                     n_map[s_atom] = p_atom
                     atom = next((x for x in twins if x not in n_map), False)
                     t = time.perf_counter() - self.__time
-                    if atom and t < 300.0:
+                    if atom and t < 30.0:
                         dfs(atom, n_map.copy(), c)
-                        # elif t > 300.0:
-                        #     # print('TIME OUT!')
-                        #     break
-                        # elif len(n_map) == len(self.new_map):
-                    elif t < 300.0 and len(n_map) == len(self.new_map):
+                    elif t < 30.0 and len(n_map) == len(self.new_map):
                         self.new_map = n_map
                         self.__cost = c
 
