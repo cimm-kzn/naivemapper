@@ -1,7 +1,9 @@
 from pprint import pprint
+from keras.models import load_model
 from random import shuffle
 from timeit import default_timer as timer
 import networkx as nx
+import numpy as np
 import pickle
 
 from CGRtools.files.RDFrw import RDFread, RDFwrite
@@ -30,6 +32,8 @@ def predict_core(**kwargs):
     # dfs_pr = [0, 0, 0]
 
     print("Testing set descriptor calculation")
+    if model['type_model'] is 'keras':
+        mod_1 = load_model('trained_keras_model.h5')
     with open(kwargs['input'], encoding='cp1251') as fr, open(kwargs['output'], 'w') as fw:
         outputdata = RDFwrite(fw)
 
@@ -46,8 +50,13 @@ def predict_core(**kwargs):
                 выводятся значения логорифмов вероятностей проецирования (отображения) атомов
                 '''
                 pairs.extend(drop_pairs)
-                y.extend(model['model'].predict_log_proba(x))
-            _map, map_time = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
+                if model['type_model'] is 'keras':
+                    yi = mod_1.predict(x.values)
+                    y.extend([(0, p2[0]) for p2 in np.log(np.where(yi > 0, yi, 1e-20))])
+                else:
+                    y.extend(model['model'].predict_log_proba(x))
+
+            _map = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
 
             # на основании обученной модели перемаппливаются атомы продукта
             reaction.products._MindfulList__data = remap(reaction['products'], _map)

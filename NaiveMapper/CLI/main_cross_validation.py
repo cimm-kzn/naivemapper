@@ -3,9 +3,10 @@
 from random import shuffle
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.neural_network import MLPClassifier
+from ..keras_mlp_class.keras_mlp import Keras_MLP
 import networkx as nx
+import numpy as np
 import pandas as pd
-# import os
 
 from CGRtools.files.RDFrw import RDFread, RDFwrite
 from ..bitstringen import Bitstringen
@@ -49,13 +50,21 @@ def cross_validation_core(**kwargs):
             print("Training set descriptor calculation")
             # Контрольная выборка, для оценки предсказательной способности
             file_1 = '{}/mapping{}{}.rdf'.format(kwargs['output'], r, n)
+
             if kwargs['type_model'] is 'nb':
                 m = BernoulliNB(alpha=1.0, binarize=None)  # Создаем новую модель Наивного Бейсовского классификатора
-            else:
+            elif kwargs['type_model'] is 'mlp':
                 hls, a, s, alpha = tuple(kwargs['mlp_hls']), kwargs['mlp_a'], kwargs['mlp_s'], kwargs['mlp_alpha']
                 bs, lr, mi, es = kwargs['mlp_bs'], kwargs['mlp_lr'], kwargs['mlp_mi'], kwargs['mlp_es']
                 m = MLPClassifier(hidden_layer_sizes=hls, activation=a, solver=s, alpha=alpha,
                                   batch_size=bs, learning_rate=lr, max_iter=mi, early_stopping=es)
+            else:
+                m = Keras_MLP(task="classification_2", layer_sizes=(400, 400), activations=['relu', 'relu'],
+                              dropout="Auto", alpha=0.00001 * (2 ** 1), batch_size=200, learning_rate_init=0.001,
+                              epochs=1,
+                              shuffle=True, loss_function="mse", metrics=['mse'], verbose=1,
+                              early_stopping=False, optimizer_name="adam", lr=0.001, beta_1=0.9, beta_2=0.999,
+                              epsilon=1e-08)
 
             with open(file_1, 'w') as fw:  # with open(kwargs['input']) as fr, open(file_1, 'w') as fw:
                 test_file = RDFwrite(fw)
@@ -98,10 +107,13 @@ def cross_validation_core(**kwargs):
                         логорифмов вероятностей проецирования (отображения) атомов
                         '''
                         pairs.extend(drop_pairs)
-                        y.extend([yy for yy in m.predict_log_proba(x)])
+                        if kwargs['type_model'] is 'keras':
+                            yi = m.predict(x.values)
+                            y.extend([(0, p2[0]) for p2 in np.log(np.where(yi > 0, yi, 1e-20))])
+                        else:
+                            y.extend([yy for yy in m.predict_log_proba(x)])
 
-                    _map, _ = mapping(pairs, y, nx.union_all(reaction['products']),
-                                      nx.union_all(reaction['substrats']))
+                    _map = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
                     # на основании обученной модели перемаппливаются атомы продукта
                     reaction.products._MindfulList__data = remap(reaction['products'], _map)
                     output.write(reaction)  # запись реакции в исходящий файл

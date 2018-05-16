@@ -74,8 +74,8 @@ class Fragger(object):
         """
         Создает словарь атомов и словарей фрагментов (атомы с окружением/augmented atoms).
         """
-        for d in data.nodes():
-            data.node[d]['s_charge'] = 0
+        # for d in data.nodes():
+        #     data.node[d]['s_charge'] = 0
 
         return {x: dict.fromkeys(['%d^%s' % (n, y.get_fear(y.get_morgan()))
                                   for n, y in enumerate(data.get_environment([x], dante=True, deep=self.__deep))

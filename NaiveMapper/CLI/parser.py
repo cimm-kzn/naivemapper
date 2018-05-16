@@ -15,10 +15,11 @@ class DefaultList(list):
 
 def _common(parser):
     parser.add_argument("--type_model", "-tm", type=str, default="nb",
-                        choices=['nb', 'mlp'],
+                        choices=['nb', 'mlp', 'keras'],
                         help="Model type used for training / prediction AAM:"
                              "'nb' - used naive Bayes classifier;"
-                             "'mlp' - used MLPClassifier.")
+                             "'mlp' - used MLPClassifier;"
+                             "'keras' - used Keras_MLPClassifier.")
     parser.add_argument("--mlp_hls", "-hls", action='append', type=int, default=DefaultList([100]),
                         help="If the model type is 'mlp', then the following hyper-parameters 'hidden_layer_sizes'."
                              "Example, write -hls 100 -hls 100 => [100, 100].")
