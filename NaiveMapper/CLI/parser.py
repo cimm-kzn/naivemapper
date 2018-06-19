@@ -40,6 +40,9 @@ def _common(parser):
                         help="If the model type is 'mlp', then the following hyper-parameters 'max_iter'.")
     parser.add_argument("--mlp_es", "-es", type=bool, default=False,
                         help="If the model type is 'mlp', then the following hyper-parameters 'early_stopping'.")
+    parser.add_argument("--keras_dropout", "-do", action='append', type=int, default=DefaultList([]),
+                        help="If the model type is 'keras', then the following hyper-parameters 'dropout'."
+                             "Example, write -do 0 -do 0.5 => [0, 0.5].")
     parser.add_argument("--batch_chunk", "-bc", type=int, default=1,
                         help="Breakdown by the count of reactions (for model training).")
     parser.add_argument("--pairs", "-p", type=int, default=0,
@@ -96,6 +99,8 @@ def train(subparsers):
                         help="RDF input file on which to learn to create mapping")
     parser.add_argument("--model", "-n", default="model.dat", type=FileType('wb'),
                         help="File with trained model")
+    parser.add_argument("--model_filename", "-n2", default="trained_keras_model.h5", type=str,
+                        help="File with trained keras-model")
     parser.add_argument("--debug", action='store_true', help="debug mod")
     _common(parser)
     parser.set_defaults(func=train_core)
@@ -132,6 +137,8 @@ def cross_validation(subparsers):
                         help="Split the data into k consecutive folds.")
     parser.add_argument("--repeat", "-r", type=int, default=1,
                         help="The number of repetitions of the cross-validation procedure.")
+    # parser.add_argument("--model_filename", "-n2", default="trained_keras_model.h5", type=str,
+    #                     help="File with trained keras-model")
     parser.add_argument("--debug", action='store_true', help="debug mod")
     _common(parser)
     parser.set_defaults(func=cross_validation_core)

@@ -1,7 +1,8 @@
 from pprint import pprint
-from keras.models import load_model
-from random import shuffle
 from timeit import default_timer as timer
+from keras.models import load_model
+from keras import backend as kb
+from random import shuffle
 import networkx as nx
 import numpy as np
 import pickle
@@ -12,6 +13,8 @@ from ..core import getXY, mapping, truth, worker
 from ..fragger import Fragger
 from ..pairwise import Pairwise
 
+
+kb.set_session(kb.tf.Session(config=kb.tf.ConfigProto(inter_op_parallelism_threads=2, intra_op_parallelism_threads=2)))
 
 def remap(graphs, maps):
     tmp = []
@@ -32,8 +35,8 @@ def predict_core(**kwargs):
     # dfs_pr = [0, 0, 0]
 
     print("Testing set descriptor calculation")
-    if model['type_model'] is 'keras':
-        mod_1 = load_model('trained_keras_model.h5')
+    if model['type_model'] == 'keras':
+        mod_1 = load_model(model['model_filename'])
     with open(kwargs['input'], encoding='cp1251') as fr, open(kwargs['output'], 'w') as fw:
         outputdata = RDFwrite(fw)
 
@@ -50,9 +53,10 @@ def predict_core(**kwargs):
                 выводятся значения логорифмов вероятностей проецирования (отображения) атомов
                 '''
                 pairs.extend(drop_pairs)
-                if model['type_model'] is 'keras':
+                if model['type_model'] == 'keras':
                     yi = mod_1.predict(x.values)
-                    y.extend([(0, p2[0]) for p2 in np.log(np.where(yi > 0, yi, 1e-20))])
+                    # y.extend([(0, p2[0]) for p2 in np.log(np.where(yi > 0, yi, 1e-20))])
+                    y.extend(np.log(np.where(yi > 0, yi, 1e-20)))
                 else:
                     y.extend(model['model'].predict_log_proba(x))
 
