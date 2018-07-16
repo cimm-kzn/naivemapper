@@ -137,8 +137,10 @@ def cross_validation(subparsers):
                         help="Split the data into k consecutive folds.")
     parser.add_argument("--repeat", "-r", type=int, default=1,
                         help="The number of repetitions of the cross-validation procedure.")
-    # parser.add_argument("--model_filename", "-n2", default="trained_keras_model.h5", type=str,
-    #                     help="File with trained keras-model")
+    parser.add_argument("--weights", "-w_dfs2", action='append', type=float,
+                        help="Selection of the weights parameters, for 'trimming a tree' in dfs2. "
+                             "Needed 3 float parameters. "
+                             "Example, write -w_dfs2 0.1 -w_dfs2 0.1 -w_dfs2 1.0 => [0.1, 0.1, 1.0].")
     parser.add_argument("--debug", action='store_true', help="debug mod")
     _common(parser)
     parser.set_defaults(func=cross_validation_core)

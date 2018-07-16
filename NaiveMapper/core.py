@@ -46,8 +46,8 @@ def getXY(reaction, fragger, pairwise, bitstring, chunk=None):
         yield x_bit, y_bit, pairs
 
 
-def mapping(pairs, y, prod_graph, sub_graph):
-    dfs2 = DFSdb()
+def mapping(pairs, y, prod_graph, sub_graph, weights=[1.0, 1.0, 1.0]):
+    # dfs2 = DFSdb()
     tmp = defaultdict(dict)  # создается кв.матрица (кол-во_атомов_реагента)Х(кол-во_атомов_продукта)
     for (s_atom, p_atom), proba in zip(pairs, y):
         tmp[s_atom][p_atom] = - proba[1]  # если данная пара атомов не сгенерирована ранее в pairs то значение None
@@ -62,8 +62,8 @@ def mapping(pairs, y, prod_graph, sub_graph):
     _m = {p_reindex[p]: s_reindex[s] for p, s in indexes}  # словарь со значениями атомного отображения
     _map = get_map_dfs(sub_graph, prod_graph, _m, prob_matrix)
     # пересмотр решения Манкреса (поиск в глубину по графу продукта)
-    _map2 = dfs2.getMap(sub_graph, prod_graph, _map, prob_matrix)
-    return _map2
+    # _map2 = dfs2.getMap(sub_graph, prod_graph, _map, prob_matrix, weights)
+    return _map
 
 
 def truth(f_test, f_pred, ok, nok, er, debug=False):  # Проверка соответствия

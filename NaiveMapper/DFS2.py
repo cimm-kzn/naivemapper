@@ -2,18 +2,20 @@ import time
 
 
 class DFSdb(object):
-    def getMap(self, s_graph, p_graph, _map, matrix):
+    def getMap(self, s_graph, p_graph, _map, matrix, weights):
         self.__time = time.perf_counter()
         self.__cost, self.new_map = 0, dict()
+        # bond_cost = {1: {1: 0, 2: 1, 3: 2, 4: 0}, 2: {1: 1, 2: 0, 3: 1, 4: 0},
+        # 3: {1: 2, 2: 1, 3: 0, 4: 1}, 4: {1: 0, 2: 0, 3: 1, 4: 0}}
         twins = {x: set(m.loc[lambda m_row: abs(m_row - c) < .0000001].index.tolist())
                  for x, m, c in ((x, matrix[x], matrix.loc[y, x]) for y, x in _map.items())}
 
         def dinamic_bonds(c, s_edge, p_edge, s_implicit_h, p_implicit_h, maps):
             ms, mp = set(maps.keys()) & set(s_edge.keys()), set(maps.values()) & set(p_edge.keys())
             mps = set([s for s, p in maps.items() if p in mp])
-            c += 0.5*len(ms ^ mps)
-            c += 0.5*abs(sum([s_edge[i]['s_bond'] for i in ms]) - sum([p_edge[j]['s_bond'] for j in mp]))
-            c += 1.5*abs(s_implicit_h - p_implicit_h)
+            c += weights[0]*len(ms ^ mps)
+            c += weights[1]*abs(sum([s_edge[i]['s_bond'] for i in ms]) - sum([p_edge[j]['s_bond'] for j in mp]))
+            c += weights[2]*abs(s_implicit_h - p_implicit_h)
             return c
 
         def dfs(s_atom, n_map, c):
