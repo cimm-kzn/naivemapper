@@ -20,7 +20,7 @@ from ..fragger import Fragger
 from ..pairwise import Pairwise
 
 
-kb.set_session(kb.tf.Session(config=kb.tf.ConfigProto(inter_op_parallelism_threads=2, intra_op_parallelism_threads=2)))
+kb.set_session(kb.tf.Session(config=kb.tf.ConfigProto(inter_op_parallelism_threads=1, intra_op_parallelism_threads=1)))
 
 def remap(graphs, maps):
     tmp = []
@@ -135,7 +135,13 @@ def cross_validation_core(**kwargs):
                         else:
                             y.extend([yy for yy in m.predict_log_proba(x)])
 
-                    _map = mapping(pairs, y, nx.union_all(reaction['products']), nx.union_all(reaction['substrats']))
+                    dfs2_weights = kwargs['weights']
+                    if dfs2_weights and len(dfs2_weights) == 3:
+                        _map = mapping(pairs, y, nx.union_all(reaction['products']),
+                                       nx.union_all(reaction['substrats']), dfs2_weights)
+                    else:
+                        _map = mapping(pairs, y, nx.union_all(reaction['products']),
+                                       nx.union_all(reaction['substrats']))
                     # на основании обученной модели перемаппливаются атомы продукта
                     reaction.products._MindfulList__data = remap(reaction['products'], _map)
                     output.write(reaction)  # запись реакции в исходящий файл

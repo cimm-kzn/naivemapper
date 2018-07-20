@@ -10,8 +10,8 @@ from sklearn.utils.tests.test_linear_assignment import _hungarian
 
 from CGRtools.files.RDFrw import RDFread
 from CGRtools.preparer import CGRpreparer
-from .DFS2 import DFSdb
-from .DFS import get_map_dfs
+from .ValFix import ValFix
+from .SymFix import symFix
 
 
 def worker(file, debug=False):  # для души. увидим ошибки в RDF
@@ -46,8 +46,8 @@ def getXY(reaction, fragger, pairwise, bitstring, chunk=None):
         yield x_bit, y_bit, pairs
 
 
-def mapping(pairs, y, prod_graph, sub_graph):
-    dfs2 = DFSdb()
+def mapping(pairs, y, prod_graph, sub_graph, weights=[0.5, 0.5, 1.5]):
+    valFix = ValFix()
     tmp = defaultdict(dict)  # создается кв.матрица (кол-во_атомов_реагента)Х(кол-во_атомов_продукта)
     for (s_atom, p_atom), proba in zip(pairs, y):
         tmp[s_atom][p_atom] = - proba[1]  # если данная пара атомов не сгенерирована ранее в pairs то значение None
@@ -60,9 +60,9 @@ def mapping(pairs, y, prod_graph, sub_graph):
     s_reindex = prob_matrix.columns.values.tolist()  # наименование столбцов,отвечающие за нумерацию атомов реагента
 
     _m = {p_reindex[p]: s_reindex[s] for p, s in indexes}  # словарь со значениями атомного отображения
-    _map = get_map_dfs(sub_graph, prod_graph, _m, prob_matrix)
+    _map = symFix(sub_graph, prod_graph, _m, prob_matrix)
     # пересмотр решения Манкреса (поиск в глубину по графу продукта)
-    _map2 = dfs2.getMap(sub_graph, prod_graph, _map, prob_matrix)
+    _map2 = valFix.getMap(sub_graph, prod_graph, _map, prob_matrix, weights)
     return _map2
 
 

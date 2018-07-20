@@ -16,6 +16,7 @@ from ..pairwise import Pairwise
 
 kb.set_session(kb.tf.Session(config=kb.tf.ConfigProto(inter_op_parallelism_threads=2, intra_op_parallelism_threads=2)))
 
+
 def remap(graphs, maps):
     tmp = []
     for graph in graphs:
@@ -31,8 +32,6 @@ def predict_core(**kwargs):
     bitstring = Bitstringen(model['bitstring'], model['length'], model['fragment_count'])
     # При предсказании, НИКОГДА не применяем алгоритма Моргана для генерации пар сим./экв. атомов
     pairwise = Pairwise(0, False)
-
-    # dfs_pr = [0, 0, 0]
 
     print("Testing set descriptor calculation")
     if model['type_model'] == 'keras':
@@ -55,7 +54,6 @@ def predict_core(**kwargs):
                 pairs.extend(drop_pairs)
                 if model['type_model'] == 'keras':
                     yi = mod_1.predict(x.values)
-                    # y.extend([(0, p2[0]) for p2 in np.log(np.where(yi > 0, yi, 1e-20))])
                     y.extend(np.log(np.where(yi > 0, yi, 1e-20)))
                 else:
                     y.extend(model['model'].predict_log_proba(x))
@@ -67,4 +65,3 @@ def predict_core(**kwargs):
             outputdata.write(reaction)  # запись реакции в исходящий файл
 
     _, _ = truth(kwargs['input'], kwargs['output'], 0, 0, [], kwargs['debug'])  # Проверка соответствия
-

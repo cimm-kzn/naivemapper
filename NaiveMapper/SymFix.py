@@ -14,7 +14,7 @@ def equivalent(morgan_dict):
     return {y: x for x in tmp.values() for y in x}
 
 
-def get_map_dfs(s_graph, p_graph, _map, *_):
+def symFix(s_graph, p_graph, _map, *_):
     """
     s_grup = equivalent(self.__fear.get_morgan(s_graph))
     # {атом_реагента: [атомы_реагента, сим.\экв. с рассмтриваемым по Моргану)]}

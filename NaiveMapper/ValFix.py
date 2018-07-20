@@ -1,8 +1,8 @@
 import time
 
 
-class DFSdb(object):
-    def getMap(self, s_graph, p_graph, _map, matrix):
+class ValFix(object):
+    def getMap(self, s_graph, p_graph, _map, matrix, weights):
         self.__time = time.perf_counter()
         self.__cost, self.new_map = 0, dict()
         twins = {x: set(m.loc[lambda m_row: abs(m_row - c) < .0000001].index.tolist())
@@ -11,9 +11,9 @@ class DFSdb(object):
         def dinamic_bonds(c, s_edge, p_edge, s_implicit_h, p_implicit_h, maps):
             ms, mp = set(maps.keys()) & set(s_edge.keys()), set(maps.values()) & set(p_edge.keys())
             mps = set([s for s, p in maps.items() if p in mp])
-            c += 0.5*len(ms ^ mps)
-            c += 0.5*abs(sum([s_edge[i]['s_bond'] for i in ms]) - sum([p_edge[j]['s_bond'] for j in mp]))
-            c += 1.5*abs(s_implicit_h - p_implicit_h)
+            c += weights[0]*len(ms ^ mps)
+            c += weights[1]*abs(sum([s_edge[i]['s_bond'] for i in ms]) - sum([p_edge[j]['s_bond'] for j in mp]))
+            c += weights[2]*abs(s_implicit_h - p_implicit_h)
             return c
 
         def dfs(s_atom, n_map, c):
